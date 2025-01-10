@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MoreVertical } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface Project {
   id: number;
@@ -14,6 +15,7 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard = ({ project }: ProjectCardProps) => {
+  const navigate = useNavigate();
   const formattedDate = new Date(project.lastModified).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -21,7 +23,10 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
   });
 
   return (
-    <Card className="group relative overflow-hidden transition-all hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 duration-300">
+    <Card 
+      className="group relative overflow-hidden transition-all hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 duration-300 cursor-pointer"
+      onClick={() => navigate(`/project/${project.id}`)}
+    >
       <CardHeader>
         <div className="flex items-start justify-between space-x-4">
           <div className="space-y-1.5">
@@ -36,6 +41,10 @@ export const ProjectCard = ({ project }: ProjectCardProps) => {
             variant="ghost" 
             size="icon" 
             className="h-8 w-8 shrink-0 rounded-full hover:bg-accent"
+            onClick={(e) => {
+              e.stopPropagation();
+              // Handle menu click separately
+            }}
           >
             <MoreVertical className="h-4 w-4" />
           </Button>
