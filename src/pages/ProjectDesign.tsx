@@ -5,10 +5,14 @@ import { useNavigate } from "react-router-dom";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Terminal from "@/components/Terminal";
+import CodeEditor from "@/components/CodeEditor";
+import { useState } from "react";
 
 const ProjectDesign = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [code, setCode] = useState<string>(`// Write your code here
+console.log("Hello, World!");`);
 
   return (
     <div className="min-h-screen bg-background">
@@ -48,8 +52,10 @@ const ProjectDesign = () => {
               </TabsList>
               <TabsContent value="editor" className="h-[calc(100%-3rem)]">
                 <div className="h-full rounded-lg border border-border/40 bg-background p-4">
-                  <h2 className="text-lg font-semibold mb-4">Code Editor</h2>
-                  {/* Code editor content will go here */}
+                  <CodeEditor 
+                    value={code}
+                    onChange={(value) => setCode(value ?? "")}
+                  />
                 </div>
               </TabsContent>
               <TabsContent value="preview" className="h-[calc(100%-3rem)]">
