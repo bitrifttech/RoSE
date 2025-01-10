@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -10,7 +11,7 @@ const ProjectDesign = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
+      <header className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40 z-50">
         <div className="container h-full flex items-center justify-between">
           <Button 
             variant="ghost" 
@@ -26,17 +27,38 @@ const ProjectDesign = () => {
           <DarkModeToggle />
         </div>
       </header>
-      <main className="container max-w-7xl py-8 mt-16">
-        <div className="space-y-8">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight">Project ID: {id}</h2>
-            <p className="text-muted-foreground mt-2">
-              Design workspace for your project
-            </p>
+
+      <div className="flex h-[calc(100vh-4rem)] mt-16">
+        {/* Chat Window */}
+        <div className="w-[400px] border-r border-border/40 p-4 bg-sidebar">
+          <div className="h-full rounded-lg border border-border/40 bg-background p-4">
+            <h2 className="text-lg font-semibold mb-4">Chat</h2>
+            {/* Chat content will go here */}
           </div>
-          {/* Project design content will go here */}
         </div>
-      </main>
+
+        {/* Code Editor and Preview */}
+        <div className="flex-1 p-4">
+          <Tabs defaultValue="editor" className="h-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="editor">Code Editor</TabsTrigger>
+              <TabsTrigger value="preview">Preview</TabsTrigger>
+            </TabsList>
+            <TabsContent value="editor" className="h-[calc(100%-3rem)]">
+              <div className="h-full rounded-lg border border-border/40 bg-background p-4">
+                <h2 className="text-lg font-semibold mb-4">Code Editor</h2>
+                {/* Code editor content will go here */}
+              </div>
+            </TabsContent>
+            <TabsContent value="preview" className="h-[calc(100%-3rem)]">
+              <div className="h-full rounded-lg border border-border/40 bg-background p-4">
+                <h2 className="text-lg font-semibold mb-4">Preview</h2>
+                {/* Preview content will go here */}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
     </div>
   );
 };
