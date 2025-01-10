@@ -70,30 +70,35 @@ const Index = () => {
         </Sidebar>
 
         <main className="flex-1 overflow-auto">
-          <div className="container max-w-7xl py-8">
-            <div className="mb-8 flex items-center justify-between">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-                  Projects
-                </h1>
-                <p className="text-lg text-muted-foreground">
-                  Manage and create UX design projects
-                </p>
+          <div className="container max-w-7xl py-8 relative">
+            {/* Gloss effect overlay */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent pointer-events-none backdrop-blur-[2px] rounded-xl"></div>
+            
+            <div className="relative">
+              <div className="mb-8 flex items-center justify-between">
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+                    Projects
+                  </h1>
+                  <p className="text-lg text-muted-foreground">
+                    Manage and create UX design projects
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleNewProject} 
+                  size="lg" 
+                  className="gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Project
+                </Button>
               </div>
-              <Button 
-                onClick={handleNewProject} 
-                size="lg" 
-                className="gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow"
-              >
-                <Plus className="h-4 w-4" />
-                New Project
-              </Button>
-            </div>
 
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {projects.map((project) => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
             </div>
           </div>
         </main>
