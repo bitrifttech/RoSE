@@ -90,5 +90,6 @@
 
   body {
     @apply bg-background text-foreground;
+    background: linear-gradient(109.6deg, rgba(223,234,247,1) 11.2%, rgba(244,248,252,1) 91.1%);
   }
 }
