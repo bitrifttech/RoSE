@@ -13,6 +13,7 @@ import { Home, Settings, Plus, Layout } from "lucide-react";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 
 const Index = () => {
   const { toast } = useToast();
@@ -34,7 +35,10 @@ const Index = () => {
         <Sidebar className="border-r border-r-sidebar-border/40 shadow-lg shadow-sidebar-border/5" variant="sidebar" collapsible="icon">
           <SidebarHeader className="flex items-center justify-between border-b border-b-sidebar-border/40 px-6 py-4">
             <h2 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">Nova</h2>
-            <SidebarTrigger />
+            <div className="flex items-center gap-2">
+              <DarkModeToggle />
+              <SidebarTrigger />
+            </div>
           </SidebarHeader>
           <SidebarContent className="px-2 py-4">
             <SidebarMenu>
