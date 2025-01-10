@@ -29,9 +29,9 @@ const Index = () => {
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-background">
-        <Sidebar className="border-r">
+        <Sidebar className="border-r" variant="sidebar" collapsible="icon">
           <SidebarHeader className="flex items-center justify-between border-b px-6 py-4">
             <h2 className="text-xl font-semibold tracking-tight">Nova</h2>
             <SidebarTrigger />
@@ -39,19 +39,28 @@ const Index = () => {
           <SidebarContent className="px-2 py-4">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton className="w-full justify-start gap-3 px-4 py-2">
+                <SidebarMenuButton 
+                  className="w-full justify-start gap-3 px-4 py-2"
+                  tooltip="Home"
+                >
                   <Home className="h-4 w-4" />
                   <span className="font-medium">Home</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton className="w-full justify-start gap-3 px-4 py-2">
+                <SidebarMenuButton 
+                  className="w-full justify-start gap-3 px-4 py-2"
+                  tooltip="Projects"
+                >
                   <Layout className="h-4 w-4" />
                   <span className="font-medium">Projects</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton className="w-full justify-start gap-3 px-4 py-2">
+                <SidebarMenuButton 
+                  className="w-full justify-start gap-3 px-4 py-2"
+                  tooltip="Settings"
+                >
                   <Settings className="h-4 w-4" />
                   <span className="font-medium">Settings</span>
                 </SidebarMenuButton>
