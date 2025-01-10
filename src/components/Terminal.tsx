@@ -2,7 +2,7 @@ import React from "react";
 
 const Terminal = () => {
   return (
-    <div className="h-[300px] w-full rounded-lg border border-border/40 bg-black/90 p-4 font-mono text-sm text-green-400 overflow-hidden">
+    <div className="h-[300px] w-full rounded-lg border border-border/40 bg-background p-4 font-mono text-sm text-green-400 overflow-hidden">
       <div className="flex items-center justify-between mb-2 border-b border-border/40 pb-2">
         <div className="flex space-x-2">
           <div className="h-3 w-3 rounded-full bg-red-500"></div>

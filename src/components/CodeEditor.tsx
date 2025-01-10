@@ -17,7 +17,7 @@ const CodeEditor = ({ value, onChange, language = "typescript" }: CodeEditorProp
         defaultLanguage={language}
         value={value}
         onChange={onChange}
-        theme="vs-dark"
+        theme="light"
         options={{
           minimap: { enabled: true },
           fontSize: 14,
