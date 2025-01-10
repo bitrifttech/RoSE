@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -22,7 +23,7 @@ const ProjectDesign = () => {
           <h1 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
             Project Design
           </h1>
-          <div className="w-8" /> {/* Spacer for alignment */}
+          <DarkModeToggle />
         </div>
       </header>
       <main className="container max-w-7xl py-8 mt-16">
