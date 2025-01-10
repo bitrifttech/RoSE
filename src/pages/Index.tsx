@@ -33,7 +33,7 @@ const Index = () => {
       <div className="flex min-h-screen w-full bg-background">
         <Sidebar>
           <SidebarHeader className="flex items-center justify-between px-4 py-2">
-            <h2 className="text-lg font-semibold">UXCraft</h2>
+            <h2 className="text-lg font-semibold">Nova</h2>
             <SidebarTrigger />
           </SidebarHeader>
           <SidebarContent>
