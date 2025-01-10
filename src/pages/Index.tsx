@@ -32,7 +32,7 @@ const Index = () => {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-background">
-        <Sidebar className="border-r border-r-sidebar-border/40 shadow-lg shadow-sidebar-border/5" variant="sidebar" collapsible="icon">
+        <Sidebar className="border-r border-r-sidebar-border/40 shadow-lg shadow-sidebar-border/5 relative z-50" variant="sidebar" collapsible="icon">
           <SidebarHeader className="flex items-center justify-between border-b border-b-sidebar-border/40 px-6 py-4">
             <h2 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">Nova</h2>
             <SidebarTrigger />
