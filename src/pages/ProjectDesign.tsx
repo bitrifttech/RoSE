@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Terminal from "@/components/Terminal";
 import CodeEditor from "@/components/CodeEditor";
 import Chat from "@/components/Chat";
+import FileExplorer from "@/components/FileExplorer";
 import { useState } from "react";
 
 const ProjectDesign = () => {
@@ -44,7 +45,7 @@ console.log("Hello, World!");`);
           </div>
 
           {/* Code Editor and Preview */}
-          <div className="flex-1 p-4">
+          <div className="flex-1">
             <Tabs defaultValue="editor" className="h-full">
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="editor">Code Editor</TabsTrigger>
@@ -52,10 +53,15 @@ console.log("Hello, World!");`);
               </TabsList>
               <TabsContent value="editor" className="h-[calc(100%-3rem)]">
                 <div className="h-full rounded-lg border border-border/40 bg-background p-4">
-                  <CodeEditor 
-                    value={code}
-                    onChange={(value) => setCode(value ?? "")}
-                  />
+                  <div className="h-full flex">
+                    <FileExplorer />
+                    <div className="flex-1">
+                      <CodeEditor 
+                        value={code}
+                        onChange={(value) => setCode(value ?? "")}
+                      />
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
               <TabsContent value="preview" className="h-[calc(100%-3rem)]">
