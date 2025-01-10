@@ -8,12 +8,22 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Home, Settings, Plus, Layout } from "lucide-react";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
+
+const SidebarTitle = () => {
+  const { state } = useSidebar();
+  return (
+    <h2 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent transition-all duration-200">
+      {state === "collapsed" ? "N" : "Nova"}
+    </h2>
+  );
+};
 
 const Index = () => {
   const { toast } = useToast();
@@ -34,7 +44,7 @@ const Index = () => {
       <div className="flex min-h-screen w-full bg-background">
         <Sidebar className="border-r border-r-sidebar-border/40 shadow-lg shadow-sidebar-border/5" variant="sidebar" collapsible="icon">
           <SidebarHeader className="flex items-center justify-between border-b border-b-sidebar-border/40 px-6 py-4">
-            <h2 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">Nova</h2>
+            <SidebarTitle />
             <SidebarTrigger />
           </SidebarHeader>
           <SidebarContent className="px-2 py-4">
