@@ -35,6 +35,7 @@ const Index = () => {
         <Sidebar className="border-r border-r-sidebar-border/40 shadow-lg shadow-sidebar-border/5" variant="sidebar" collapsible="icon">
           <SidebarHeader className="flex items-center justify-between border-b border-b-sidebar-border/40 px-6 py-4">
             <h2 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">Nova</h2>
+            <SidebarTrigger />
           </SidebarHeader>
           <SidebarContent className="px-2 py-4">
             <SidebarMenu>
@@ -70,11 +71,12 @@ const Index = () => {
         </Sidebar>
 
         <main className="flex-1 overflow-auto">
-          <div className="fixed top-4 right-4 flex items-center gap-2 z-50">
-            <DarkModeToggle />
-            <SidebarTrigger />
-          </div>
-          <div className="container max-w-7xl py-8">
+          <header className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-40 border-b border-border/40">
+            <div className="container h-full flex items-center justify-end">
+              <DarkModeToggle />
+            </div>
+          </header>
+          <div className="container max-w-7xl py-8 mt-16">
             <div className="mb-8 flex items-center justify-between">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
