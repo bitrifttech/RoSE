@@ -6,6 +6,7 @@ import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Terminal from "@/components/Terminal";
 import CodeEditor from "@/components/CodeEditor";
+import Chat from "@/components/Chat";
 import { useState } from "react";
 
 const ProjectDesign = () => {
@@ -37,9 +38,8 @@ console.log("Hello, World!");`);
         <div className="flex flex-1 min-h-0">
           {/* Chat Window */}
           <div className="w-[400px] border-r border-border/40 p-4 bg-sidebar">
-            <div className="h-full rounded-lg border border-border/40 bg-background p-4">
-              <h2 className="text-lg font-semibold mb-4">Chat</h2>
-              {/* Chat content will go here */}
+            <div className="h-full rounded-lg border border-border/40 bg-background">
+              <Chat />
             </div>
           </div>
 
