@@ -32,9 +32,9 @@ const Index = () => {
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="flex min-h-screen w-full bg-background">
-        <Sidebar className="border-r border-r-sidebar-border/40 shadow-lg shadow-sidebar-border/5 relative z-50" variant="sidebar" collapsible="icon">
+        <Sidebar className="border-r border-r-sidebar-border/40 shadow-lg shadow-sidebar-border/5" variant="sidebar" collapsible="icon">
           <SidebarHeader className="flex items-center justify-between border-b border-b-sidebar-border/40 px-6 py-4">
-            <h2 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent relative z-50">Nova</h2>
+            <h2 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">Nova</h2>
             <SidebarTrigger />
           </SidebarHeader>
           <SidebarContent className="px-2 py-4">
@@ -71,7 +71,7 @@ const Index = () => {
         </Sidebar>
 
         <main className="flex-1 overflow-auto">
-          <header className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-40 border-b border-border/40">
+          <header className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
             <div className="container h-full flex items-center justify-end">
               <DarkModeToggle />
             </div>
