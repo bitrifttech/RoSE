@@ -19,12 +19,40 @@ const CodeEditor = ({ value, onChange, language = "typescript" }: CodeEditorProp
         onChange={onChange}
         theme="vs-dark"
         options={{
-          minimap: { enabled: false },
+          minimap: { enabled: true },
           fontSize: 14,
           lineNumbers: "on",
-          roundedSelection: false,
+          roundedSelection: true,
           scrollBeyondLastLine: false,
           automaticLayout: true,
+          wordWrap: "on",
+          folding: true,
+          foldingHighlight: true,
+          foldingStrategy: "auto",
+          showFoldingControls: "always",
+          matchBrackets: "always",
+          autoClosingBrackets: "always",
+          autoClosingQuotes: "always",
+          formatOnPaste: true,
+          formatOnType: true,
+          suggestOnTriggerCharacters: true,
+          acceptSuggestionOnEnter: "on",
+          tabSize: 2,
+          padding: { top: 16 },
+          scrollbar: {
+            vertical: 'visible',
+            horizontal: 'visible',
+            useShadows: true,
+            verticalScrollbarSize: 10,
+            horizontalScrollbarSize: 10
+          },
+          renderLineHighlight: "all",
+          cursorBlinking: "smooth",
+          cursorSmoothCaretAnimation: "on",
+          guides: {
+            bracketPairs: true,
+            indentation: true,
+          }
         }}
       />
     </div>
