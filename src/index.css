@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 224 71% 98%;
+    --background: 224 30% 98%;
     --foreground: 224 71% 4%;
     
     --card: 0 0% 100%;
@@ -13,35 +13,35 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
     
-    --primary: 262 83% 58%;
+    --primary: 280 100% 60%;
     --primary-foreground: 210 40% 98%;
     
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220.9 39.3% 11%;
+    --secondary: 187 100% 42%;
+    --secondary-foreground: 220 40% 98%;
     
     --muted: 220 14% 96%;
     --muted-foreground: 220 8.9% 46.1%;
     
-    --accent: 262 83% 58%;
+    --accent: 326 100% 60%;
     --accent-foreground: 210 40% 98%;
     
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 100% 60%;
     --destructive-foreground: 210 40% 98%;
     
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 262 83% 58%;
+    --ring: 280 100% 60%;
     
     --radius: 1rem;
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 224 71% 4%;
-    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary: 280 100% 60%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 262 83% 58%;
+    --sidebar-accent: 326 100% 60%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 262 83% 58%;
+    --sidebar-ring: 280 100% 60%;
   }
 
   .dark {
@@ -82,9 +82,7 @@
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 199 89% 48%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
@@ -95,7 +93,7 @@
 
   /* Modern card hover effects */
   .card {
-    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/10;
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/20;
   }
 
   /* Fancy button hover effects */
@@ -104,12 +102,12 @@
   }
 
   button:hover {
-    @apply shadow-lg shadow-primary/20;
+    @apply shadow-lg shadow-primary/30;
   }
 
   /* Gradient text effects */
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent;
   }
 }
 
@@ -127,7 +125,7 @@
 
 /* Glass morphism effects */
 .glass {
-  @apply bg-white/30 backdrop-blur-lg border border-white/20 shadow-xl;
+  @apply bg-white/20 backdrop-blur-lg border border-white/30 shadow-xl;
 }
 
 /* Modern scrollbar */
@@ -137,14 +135,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-secondary/50 rounded-full;
+  @apply bg-secondary/30 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-primary/50 rounded-full hover:bg-primary/70 transition-colors;
+  @apply bg-primary/60 rounded-full hover:bg-primary/80 transition-colors;
 }
 
 /* Fancy focus effects */
 *:focus-visible {
-  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background transition-shadow;
+  @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background transition-shadow;
 }
