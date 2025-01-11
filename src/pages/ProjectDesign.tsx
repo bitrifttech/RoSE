@@ -8,26 +8,89 @@ import Terminal from "@/components/Terminal";
 import CodeEditor from "@/components/CodeEditor";
 import Chat from "@/components/Chat";
 import FileExplorer from "@/components/FileExplorer";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
 
 const ProjectDesign = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [code, setCode] = useState<string>(`// Write your code here
 console.log("Hello, World!");`);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const connectToServer = useCallback(() => {
+    const ws = new WebSocket('ws://127.0.0.1:8030');
+
+    ws.onopen = () => {
+      setIsConnected(true);
+      toast({
+        title: "Connected to server",
+        description: "Successfully connected to the design server",
+      });
+    };
+
+    ws.onclose = () => {
+      setIsConnected(false);
+      setSocket(null);
+      toast({
+        title: "Disconnected from server",
+        description: "Connection lost. Attempting to reconnect...",
+        variant: "destructive",
+      });
+      // Attempt to reconnect after 3 seconds
+      setTimeout(connectToServer, 3000);
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      toast({
+        title: "Connection error",
+        description: "Failed to connect to the design server",
+        variant: "destructive",
+      });
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        // Handle incoming messages here
+        console.log('Received message:', data);
+      } catch (error) {
+        console.error('Error parsing message:', error);
+      }
+    };
+
+    setSocket(ws);
+  }, [toast]);
+
+  useEffect(() => {
+    connectToServer();
+
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, [connectToServer]);
 
   return (
     <div className="min-h-screen bg-background">
       <header className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40 z-50">
         <div className="container h-full flex items-center justify-between">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => navigate('/')}
-            className="hover:bg-accent/50"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate('/')}
+              className="hover:bg-accent/50"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <ConnectionStatus isConnected={isConnected} />
+          </div>
           <h1 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
             Project Design
           </h1>
