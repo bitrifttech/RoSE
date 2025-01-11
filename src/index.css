@@ -54,7 +54,8 @@
     --popover: 260 40% 8%;
     --popover-foreground: 187 100% 70%;
 
-    --primary: 326 100% 60%;
+    /* Updated primary colors to use a softer gradient */
+    --primary: 298 50% 51%;
     --primary-foreground: 187 100% 70%;
 
     --secondary: 265 89% 78%;
@@ -71,16 +72,16 @@
 
     --border: 260 40% 12%;
     --input: 260 40% 12%;
-    --ring: 326 100% 60%;
+    --ring: 298 50% 51%;
 
     --sidebar-background: 260 40% 6%;
     --sidebar-foreground: 187 100% 70%;
-    --sidebar-primary: 326 100% 60%;
+    --sidebar-primary: 298 50% 51%;
     --sidebar-primary-foreground: 187 100% 70%;
     --sidebar-accent: 187 100% 70%;
     --sidebar-accent-foreground: 280 100% 98%;
     --sidebar-border: 260 40% 12%;
-    --sidebar-ring: 326 100% 60%;
+    --sidebar-ring: 298 50% 51%;
   }
 
   * {
@@ -91,23 +92,55 @@
     @apply bg-background text-foreground;
   }
 
-  /* Modern card hover effects */
+  /* Modern card hover effects with updated gradient */
   .card {
-    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/20;
+    @apply transition-all duration-300;
   }
 
-  /* Fancy button hover effects */
+  .card:hover {
+    @apply shadow-lg;
+    background: linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%);
+    background-clip: padding-box;
+  }
+
+  /* Fancy button hover effects with softer gradient */
   button {
     @apply transition-all duration-300;
   }
 
   button:hover {
-    @apply shadow-lg shadow-primary/30;
+    @apply shadow-lg;
+    background: linear-gradient(277deg, rgba(147,39,143,0.8) 0%, rgba(234,172,232,0.8) 100%);
   }
 
-  /* Gradient text effects */
+  /* Gradient text effects with updated colors */
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-secondary to-accent;
+    background: linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%);
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Glass morphism effects */
+  .glass {
+    @apply bg-white/20 backdrop-blur-lg border border-white/30 shadow-xl;
+  }
+
+  /* Modern scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary/60 rounded-full hover:bg-primary/80 transition-colors;
+  }
+
+  /* Fancy focus effects */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background transition-shadow;
   }
 }
 
@@ -123,26 +156,4 @@
   animation: typing 2s steps(40, end);
 }
 
-/* Glass morphism effects */
-.glass {
-  @apply bg-white/20 backdrop-blur-lg border border-white/30 shadow-xl;
-}
-
-/* Modern scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-secondary/30 rounded-full;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-primary/60 rounded-full hover:bg-primary/80 transition-colors;
-}
-
-/* Fancy focus effects */
-*:focus-visible {
-  @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background transition-shadow;
-}
+/* Other utilities and animations can be added here */
