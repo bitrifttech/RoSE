@@ -67,14 +67,34 @@ export async function updateFile(path: string, content: string): Promise<void> {
 }
 
 export async function deleteFile(path: string): Promise<void> {
-  const normalizedPath = path.replace(/^\/+|\/+$/g, '');
-  const response = await fetch(`${BASE_URL}/files/${normalizedPath}`, {
+  const response = await fetch(`${BASE_URL}/delete`, {
     method: 'DELETE',
     headers: {
-      'Accept': 'application/json',
-    }
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ path }),
   });
+
   if (!response.ok) {
-    throw new Error(`Failed to delete file: ${response.statusText}`);
+    const error = await response.text();
+    throw new Error(`Failed to delete file: ${error}`);
+  }
+}
+
+export async function moveFile(sourcePath: string, targetPath: string): Promise<void> {
+  const response = await fetch(`${BASE_URL}/move`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      sourcePath,
+      targetPath,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to move file: ${error}`);
   }
 }

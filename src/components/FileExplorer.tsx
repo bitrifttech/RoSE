@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { readFile, listFiles, createFile, updateFile } from '@/lib/api';
+import { readFile, listFiles, createFile, updateFile, moveFile, deleteFile } from '@/lib/api';
 import { cn } from '@/lib/utils';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
-import { Search, ChevronRight, ChevronDown } from 'lucide-react';
+import { Search, ChevronRight, ChevronDown, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import FileContextMenu from './FileContextMenu';
 import { getFileIcon, sortFiles, matchesFilter, shouldIgnore } from '@/utils/files';
@@ -28,6 +28,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
   const [draggedItem, setDraggedItem] = useState<FileItem | null>(null);
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
 
   const fetchFiles = useCallback(async (path: string = '') => {
@@ -47,6 +48,69 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
       return [];
     }
   }, []);
+
+  const refreshFiles = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const rootFiles = await fetchFiles();
+      setFiles(rootFiles);
+      
+      // Refresh all expanded directories
+      const refreshPromises = Array.from(expandedPaths).map(async (path) => {
+        const children = await fetchFiles(path);
+        setFiles(prevFiles => {
+          const updateChildren = (items: FileItem[]): FileItem[] => {
+            return items.map(item => {
+              if (item.path === path) {
+                return { ...item, children };
+              }
+              if (item.children) {
+                return { ...item, children: updateChildren(item.children) };
+              }
+              return item;
+            });
+          };
+          return updateChildren(prevFiles);
+        });
+      });
+
+      await Promise.all(refreshPromises);
+      setError(null);
+    } catch (err) {
+      console.error('Error refreshing files:', err);
+      setError('Failed to refresh files');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchFiles, expandedPaths]);
+
+  // Auto-refresh every 5 seconds if the window is focused
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const startAutoRefresh = () => {
+      intervalId = setInterval(refreshFiles, 5000);
+    };
+
+    const stopAutoRefresh = () => {
+      clearInterval(intervalId);
+    };
+
+    // Start auto-refresh when window is focused
+    window.addEventListener('focus', startAutoRefresh);
+    window.addEventListener('blur', stopAutoRefresh);
+
+    // Initial start
+    if (document.hasFocus()) {
+      startAutoRefresh();
+    }
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', startAutoRefresh);
+      window.removeEventListener('blur', stopAutoRefresh);
+    };
+  }, [refreshFiles]);
 
   const loadDirectory = useCallback(async (path: string) => {
     const children = await fetchFiles(path);
@@ -108,12 +172,14 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
     }
 
     try {
-      const content = await readFile(draggedItem.path);
       const newPath = `${targetItem.path}/${draggedItem.name}`;
-      await createFile(newPath, content);
+      await moveFile(draggedItem.path, newPath);
+      
       // Refresh both source and target directories
+      const sourceDir = draggedItem.path.split('/').slice(0, -1).join('/');
+      await loadDirectory(sourceDir);
       await loadDirectory(targetItem.path);
-      await loadDirectory(draggedItem.path.split('/').slice(0, -1).join('/'));
+      
       toast({
         title: 'File moved',
         description: `Successfully moved ${draggedItem.name} to ${targetItem.path}`,
@@ -198,7 +264,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
     if (!confirm('Are you sure you want to delete this item?')) return;
 
     try {
-      // TODO: Add delete API endpoint and call it
+      await deleteFile(path);
       const parentPath = path.split('/').slice(0, -1).join('/');
       await loadDirectory(parentPath);
       toast({
@@ -206,9 +272,10 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
         description: 'Successfully deleted item',
       });
     } catch (err) {
+      console.error('Error deleting file:', err);
       toast({
         title: 'Error',
-        description: 'Failed to delete item',
+        description: err instanceof Error ? err.message : 'Failed to delete item',
         variant: 'destructive',
       });
     }
@@ -275,6 +342,23 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
   return (
     <div className="w-64 h-full flex flex-col border-r border-border/40">
       <div className="p-2 border-b border-border/40">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-medium">Files</h3>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={refreshFiles}
+            disabled={isRefreshing}
+          >
+            <RefreshCw 
+              className={cn(
+                "h-4 w-4",
+                isRefreshing && "animate-spin"
+              )} 
+            />
+          </Button>
+        </div>
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input

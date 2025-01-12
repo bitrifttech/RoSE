@@ -301,6 +301,79 @@ const apiRoutes = {
                 }
             }
         }
+    },
+    '/move': {
+        post: {
+            summary: 'Move file or directory',
+            description: 'Moves a file or directory to a new location',
+            requestBody: {
+                required: true,
+                content: 'application/json',
+                schema: {
+                    type: 'object',
+                    properties: {
+                        sourcePath: {
+                            type: 'string',
+                            required: true,
+                            description: 'Source file or directory path relative to app directory'
+                        },
+                        targetPath: {
+                            type: 'string',
+                            required: true,
+                            description: 'Target file or directory path relative to app directory'
+                        }
+                    }
+                }
+            },
+            responses: {
+                '200': {
+                    description: 'Moved successfully'
+                },
+                '403': {
+                    description: 'Access denied: Path outside app directory'
+                },
+                '404': {
+                    description: 'Source file or directory not found'
+                },
+                '500': {
+                    description: 'Server error'
+                }
+            }
+        }
+    },
+    '/delete': {
+        delete: {
+            summary: 'Delete file or directory',
+            description: 'Deletes the specified file or directory',
+            requestBody: {
+                required: true,
+                content: 'application/json',
+                schema: {
+                    type: 'object',
+                    properties: {
+                        path: {
+                            type: 'string',
+                            required: true,
+                            description: 'File or directory path relative to app directory'
+                        }
+                    }
+                }
+            },
+            responses: {
+                '200': {
+                    description: 'Deleted successfully'
+                },
+                '403': {
+                    description: 'Access denied: Path outside app directory'
+                },
+                '404': {
+                    description: 'File or directory not found'
+                },
+                '500': {
+                    description: 'Server error'
+                }
+            }
+        }
     }
 };
 
@@ -338,6 +411,7 @@ function createApp() {
 
     // Constants
     const APP_DIR = path.join(__dirname, '../app');
+    const WORKSPACE_DIR = APP_DIR;
 
     // Ensure app directory exists
     fs.ensureDirSync(APP_DIR);
@@ -443,6 +517,70 @@ function createApp() {
             res.json({ message: 'Deleted successfully' });
         } catch (error) {
             res.status(500).json({ error: error.message });
+        }
+    });
+
+    // Move file endpoint
+    app.post('/move', async (req, res) => {
+        try {
+            const { sourcePath, targetPath } = req.body;
+            
+            // Ensure both paths are within the workspace
+            const absoluteSourcePath = path.join(WORKSPACE_DIR, sourcePath);
+            const absoluteTargetPath = path.join(WORKSPACE_DIR, targetPath);
+            
+            if (!absoluteSourcePath.startsWith(WORKSPACE_DIR) || !absoluteTargetPath.startsWith(WORKSPACE_DIR)) {
+                return res.status(403).send('Invalid path');
+            }
+
+            // Check if source exists and target parent directory exists
+            if (!fs.existsSync(absoluteSourcePath)) {
+                return res.status(404).send('Source file not found');
+            }
+
+            const targetDir = path.dirname(absoluteTargetPath);
+            if (!fs.existsSync(targetDir)) {
+                return res.status(404).send('Target directory not found');
+            }
+
+            // Move the file
+            await fs.promises.rename(absoluteSourcePath, absoluteTargetPath);
+            res.sendStatus(200);
+        } catch (error) {
+            console.error('Error moving file:', error);
+            res.status(500).send(error.message);
+        }
+    });
+
+    // Delete file endpoint
+    app.delete('/delete', async (req, res) => {
+        try {
+            const { path: filePath } = req.body;
+            
+            // Ensure path is within the workspace
+            const absolutePath = path.join(WORKSPACE_DIR, filePath);
+            
+            if (!absolutePath.startsWith(WORKSPACE_DIR)) {
+                return res.status(403).send('Invalid path');
+            }
+
+            // Check if path exists
+            if (!fs.existsSync(absolutePath)) {
+                return res.status(404).send('File not found');
+            }
+
+            // Check if it's a directory
+            const stats = await fs.promises.stat(absolutePath);
+            if (stats.isDirectory()) {
+                await fs.promises.rm(absolutePath, { recursive: true });
+            } else {
+                await fs.promises.unlink(absolutePath);
+            }
+
+            res.sendStatus(200);
+        } catch (error) {
+            console.error('Error deleting file:', error);
+            res.status(500).send(error.message);
         }
     });
 
