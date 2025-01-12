@@ -18,6 +18,7 @@ import { updateFile } from "@/lib/api";
 import EditorTabs from "@/components/EditorTabs";
 import { createEditorTab, getLanguageFromPath } from "@/utils/editor";
 import { PreviewWindow } from "@/components/PreviewWindow";
+import { ServerControls } from "@/components/ServerControls";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -317,6 +318,7 @@ console.log("Hello, World!");`);
             <ConnectionStatus isConnected={isConnected} />
           </div>
           <div className="flex items-center space-x-4">
+            <ServerControls />
             <Button
               onClick={handleStartContainer}
               disabled={isContainerRunning}

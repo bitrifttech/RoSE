@@ -98,3 +98,93 @@ export async function moveFile(sourcePath: string, targetPath: string): Promise<
     throw new Error(`Failed to move file: ${error}`);
   }
 }
+
+export async function startServer(): Promise<void> {
+  const response = await fetch(`${BASE_URL}/server/start`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      command: 'node',
+      args: ['server.js'],
+      cwd: '/Users/trips/bitrift/nova/nova-app/src/containers/agent/app'  // Specify the working directory
+    }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.text().catch(() => response.statusText);
+    throw new Error(`Failed to start server: ${error}`);
+  }
+
+  // Wait for the server to actually start
+  let retries = 5;
+  while (retries > 0) {
+    const status = await getServerStatus();
+    if (status.running) {
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+    retries--;
+  }
+  
+  throw new Error('Server failed to start after multiple attempts');
+}
+
+export async function stopServer(): Promise<void> {
+  const response = await fetch(`${BASE_URL}/server/stop`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  });
+  
+  if (!response.ok) {
+    const error = await response.text().catch(() => response.statusText);
+    throw new Error(`Failed to stop server: ${error}`);
+  }
+
+  // Wait for the server to actually stop
+  let retries = 5;
+  while (retries > 0) {
+    const status = await getServerStatus();
+    if (!status.running) {
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+    retries--;
+  }
+  
+  throw new Error('Server failed to stop after multiple attempts');
+}
+
+export async function getServerStatus(): Promise<{ running: boolean }> {
+  try {
+    // Try to get status from the API server
+    const response = await fetch(`${BASE_URL}/server/status`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      console.log('Status check failed:', response.status);
+      return { running: false };
+    }
+
+    const data = await response.json().catch(() => null);
+    console.log('Status data:', data);
+    
+    // Only consider it running if we get a valid pid
+    if (!data || typeof data !== 'object') {
+      return { running: false };
+    }
+
+    // Check if we have a valid pid
+    return { running: Boolean(data.pid && data.pid > 0) };
+  } catch (error) {
+    console.error('Status check error:', error);
+    return { running: false };
+  }
+}
