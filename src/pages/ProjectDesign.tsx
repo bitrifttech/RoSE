@@ -17,6 +17,7 @@ import { debounce } from "@/utils/debounce";
 import { updateFile } from "@/lib/api";
 import EditorTabs from "@/components/EditorTabs";
 import { createEditorTab, getLanguageFromPath } from "@/utils/editor";
+import { PreviewWindow } from "@/components/PreviewWindow";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -388,7 +389,7 @@ console.log("Hello, World!");`);
               <TabsContent value="preview" className="h-[calc(100%-3rem)]">
                 <div className="h-full rounded-lg border border-border/40 bg-background p-4">
                   <h2 className="text-lg font-semibold mb-4">Preview</h2>
-                  {/* Preview content will go here */}
+                  <PreviewWindow url="http://localhost:8040" />
                 </div>
               </TabsContent>
             </Tabs>
