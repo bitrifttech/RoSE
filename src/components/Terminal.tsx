@@ -12,10 +12,11 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
   const xtermRef = useRef<XTerm>();
   const fitAddonRef = useRef<FitAddon>();
 
+  // Initialize terminal
   useEffect(() => {
-    // Initialize terminal
     if (!terminalRef.current || xtermRef.current) return;
 
+    console.log('Initializing terminal...');
     const term = new XTerm({
       cursorBlink: true,
       fontSize: 14,
@@ -23,7 +24,10 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
       theme: {
         background: '#000000',
         foreground: '#ffffff'
-      }
+      },
+      convertEol: true,
+      cursorStyle: 'block',
+      scrollback: 1000,
     });
 
     const fitAddon = new FitAddon();
@@ -32,34 +36,18 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
     term.open(terminalRef.current);
     fitAddon.fit();
 
+    console.log('Terminal initialized');
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    // Handle terminal input
-    term.onData(data => {
-      if (shellSocket?.readyState === WebSocket.OPEN) {
-        shellSocket.send(JSON.stringify({
-          type: 'input',
-          data: data
-        }));
-      }
-    });
-
     // Handle window resize
     const handleResize = () => {
+      if (!term || !fitAddon) return;
       fitAddon.fit();
-      if (shellSocket?.readyState === WebSocket.OPEN) {
-        shellSocket.send(JSON.stringify({
-          type: 'resize',
-          data: {
-            cols: term.cols,
-            rows: term.rows
-          }
-        }));
-      }
     };
 
     window.addEventListener('resize', handleResize);
+    handleResize();
 
     return () => {
       window.removeEventListener('resize', handleResize);
@@ -67,26 +55,25 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
     };
   }, []);
 
-  // Handle WebSocket messages
+  // Handle WebSocket connection
   useEffect(() => {
-    if (!xtermRef.current || !shellSocket) return;
-
     const term = xtermRef.current;
+    if (!term || !shellSocket) return;
 
-    // Write initial message
-    if (!shellSocket) {
-      term.writeln('\r\nWaiting for connection...\r\n');
-    }
+    console.log('Setting up WebSocket handlers');
 
     const handleMessage = (event: MessageEvent) => {
       try {
         const message = JSON.parse(event.data);
+        console.log('Received message:', message);
+        
         switch (message.type) {
           case 'output':
             term.write(message.data);
             break;
           case 'connected':
-            term.writeln(`\r\nShell session started (${message.data.shell})`);
+            console.log('Shell connected:', message.data);
+            term.writeln(`\r\nConnected to ${message.data.shell}`);
             term.writeln(`Working directory: ${message.data.cwd}`);
             term.writeln('');
             break;
@@ -97,18 +84,40 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
     };
 
     const handleOpen = () => {
+      console.log('WebSocket opened');
       term.clear();
       term.writeln('\r\n🚀 Connected to shell server\r\n');
+
+      // Send initial terminal size
+      const { cols, rows } = term;
+      shellSocket.send(JSON.stringify({
+        type: 'resize',
+        data: { cols, rows }
+      }));
     };
 
     const handleClose = () => {
+      console.log('WebSocket closed');
       term.writeln('\r\n❌ Disconnected from shell server\r\n');
     };
 
-    const handleError = () => {
+    const handleError = (error: Event) => {
+      console.error('WebSocket error:', error);
       term.writeln('\r\n⚠️ Error connecting to shell server\r\n');
     };
 
+    // Set up terminal input handling
+    const handleTerminalData = (data: string) => {
+      if (shellSocket.readyState === WebSocket.OPEN) {
+        console.log('Sending terminal data:', data);
+        shellSocket.send(JSON.stringify({
+          type: 'input',
+          data: data
+        }));
+      }
+    };
+
+    term.onData(handleTerminalData);
     shellSocket.addEventListener('message', handleMessage);
     shellSocket.addEventListener('open', handleOpen);
     shellSocket.addEventListener('close', handleClose);
@@ -133,8 +142,9 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
         <span className="text-xs text-muted-foreground">Terminal</span>
       </div>
       <div 
-        ref={terminalRef} 
+        ref={terminalRef}
         className="h-[calc(100%-2.5rem)] w-full"
+        style={{ backgroundColor: '#000000' }}
       />
     </div>
   );

@@ -21,7 +21,6 @@ const ProjectDesign = () => {
   const { toast } = useToast();
   const [code, setCode] = useState<string>(`// Write your code here
 console.log("Hello, World!");`);
-  const [socket, setSocket] = useState<WebSocket | null>(null);
   const [shellSocket, setShellSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isContainerRunning, setIsContainerRunning] = useState(false);
@@ -125,80 +124,58 @@ console.log("Hello, World!");`);
   }, [containers, containerId, toast, refreshContainers]);
 
   const connectToServer = useCallback(() => {
-    // Connect to main WebSocket through the proxy
-    const ws = new WebSocket('ws://127.0.0.1:8081/api/ws');
-    // Connect directly to shell WebSocket
+    if (shellSocket) {
+      console.log('Already connected, disconnecting first...');
+      shellSocket.close();
+    }
+
+    console.log('Connecting to shell server...');
     const shell = new WebSocket('ws://127.0.0.1:8030/shell');
 
-    ws.onopen = () => {
+    shell.onopen = () => {
+      console.log('Shell WebSocket connected');
       setIsConnected(true);
       toast({
-        title: "Connected to server",
-        description: "Successfully connected to the design server",
+        title: "Connected",
+        description: "Successfully connected to the shell server",
       });
-    };
-
-    ws.onclose = () => {
-      setIsConnected(false);
-      setSocket(null);
-      toast({
-        title: "Disconnected from server",
-        description: "Connection lost",
-        variant: "destructive",
-      });
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      toast({
-        title: "Connection error",
-        description: "Failed to connect to the design server",
-        variant: "destructive",
-      });
-    };
-
-    shell.onopen = () => {
-      console.log('Shell connection established');
-      // Send initial terminal size
-      const terminalElement = document.querySelector('.xterm-screen');
-      if (terminalElement) {
-        const { width, height } = terminalElement.getBoundingClientRect();
-        shell.send(JSON.stringify({
-          type: 'resize',
-          data: {
-            cols: Math.floor(width / 9), // Approximate character width
-            rows: Math.floor(height / 17) // Approximate character height
-          }
-        }));
-      }
     };
 
     shell.onclose = () => {
-      console.log('Shell connection closed');
+      console.log('Shell WebSocket closed');
       setShellSocket(null);
+      setIsConnected(false);
     };
 
     shell.onerror = (error) => {
       console.error('Shell WebSocket error:', error);
-      shell.close();
-      setShellSocket(null);
+      toast({
+        title: "Connection error",
+        description: "Failed to connect to the shell server",
+        variant: "destructive",
+      });
     };
 
-    setSocket(ws);
     setShellSocket(shell);
-  }, [toast]);
+  }, [shellSocket, toast]);
 
   const disconnectFromServer = useCallback(() => {
-    if (socket) {
-      socket.close();
-      setSocket(null);
-    }
     if (shellSocket) {
+      console.log('Disconnecting from shell server...');
       shellSocket.close();
       setShellSocket(null);
+      setIsConnected(false);
     }
-    setIsConnected(false);
-  }, [socket, shellSocket]);
+  }, [shellSocket]);
+
+  // Cleanup WebSocket connection when component unmounts
+  useEffect(() => {
+    return () => {
+      if (shellSocket) {
+        shellSocket.close();
+      }
+    };
+  }, [shellSocket]);
 
   // Refresh containers periodically
   useEffect(() => {
@@ -206,18 +183,6 @@ console.log("Hello, World!");`);
     const interval = setInterval(refreshContainers, 5000);
     return () => clearInterval(interval);
   }, [refreshContainers]);
-
-  // Cleanup socket on unmount
-  useEffect(() => {
-    return () => {
-      if (socket) {
-        socket.close();
-      }
-      if (shellSocket) {
-        shellSocket.close();
-      }
-    };
-  }, [socket, shellSocket]);
 
   return (
     <div className="min-h-screen bg-background">
