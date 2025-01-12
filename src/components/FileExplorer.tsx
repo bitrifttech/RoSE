@@ -1,343 +1,297 @@
-import React, { useEffect, useState } from "react";
-import { Folder, File, ChevronRight, ChevronDown, Plus, Trash2, Edit, Save, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { FileItem, listFiles, createFile, deleteFile, updateFile, readFile } from "@/lib/api";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { toast } from "./ui/use-toast";
-
-interface FileTreeItem {
-  name: string;
-  path: string;
-  isDirectory: boolean;
-  size: number;
-  modified: string;
-  expanded?: boolean;
-  children?: FileTreeItem[];
-}
+import React, { useState, useCallback, useEffect } from 'react';
+import { readFile, listFiles, createFile, updateFile } from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
+import { Search, ChevronRight, ChevronDown } from 'lucide-react';
+import { Alert, AlertDescription } from './ui/alert';
+import FileContextMenu from './FileContextMenu';
+import { getFileIcon, sortFiles, matchesFilter, shouldIgnore } from '@/utils/files';
+import { useToast } from './ui/use-toast';
 
 interface FileExplorerProps {
-  onFileSelect?: (content: string, path: string) => void;
+  onFileSelect: (content: string, path: string) => void;
 }
 
-const FileTreeNode = ({ 
-  item, 
-  depth = 0, 
-  onRefresh,
-  onFileSelect,
-}: { 
-  item: FileTreeItem; 
-  depth?: number;
-  onRefresh: () => void;
-  onFileSelect?: (content: string, path: string) => void;
-}) => {
-  const [expanded, setExpanded] = useState(item.expanded || false);
-  const [children, setChildren] = useState<FileTreeItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [newName, setNewName] = useState(item.name);
-  const [showCreateNew, setShowCreateNew] = useState(false);
-  const [newItemName, setNewItemName] = useState("");
-  const [newItemType, setNewItemType] = useState<"file" | "directory">("file");
-
-  const handleFileClick = async () => {
-    if (!item.isDirectory && onFileSelect) {
-      try {
-        const content = await readFile(item.path);
-        onFileSelect(content, item.path);
-      } catch (error) {
-        toast({
-          title: "Error reading file",
-          description: error instanceof Error ? error.message : "Failed to read file",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const loadChildren = async () => {
-    if (!item.isDirectory) return;
-    
-    try {
-      setIsLoading(true);
-      const files = await listFiles(item.path);
-      const sortedFiles = files.sort((a, b) => {
-        // Directories first, then files
-        if (a.isDirectory && !b.isDirectory) return -1;
-        if (!a.isDirectory && b.isDirectory) return 1;
-        return a.name.localeCompare(b.name);
-      });
-      
-      setChildren(sortedFiles.map(file => ({
-        ...file,
-        path: `${item.path}/${file.name}`.replace(/^\/+/, ''),
-      })));
-    } catch (error) {
-      toast({
-        title: "Error loading files",
-        description: error instanceof Error ? error.message : "Failed to load files",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (expanded && item.isDirectory) {
-      loadChildren();
-    }
-  }, [expanded]);
-
-  const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete ${item.name}?`)) return;
-    
-    try {
-      await deleteFile(item.path);
-      toast({
-        title: "Deleted successfully",
-        description: `${item.name} has been deleted`,
-      });
-      onRefresh();
-    } catch (error) {
-      toast({
-        title: "Error deleting file",
-        description: error instanceof Error ? error.message : "Failed to delete file",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleRename = async () => {
-    if (isEditing) {
-      try {
-        // For now, we'll implement rename as a copy + delete operation
-        const oldPath = item.path;
-        const newPath = item.path.replace(item.name, newName);
-        
-        if (item.isDirectory) {
-          await createFile(newPath, "", true);
-        } else {
-          const content = await readFile(oldPath);
-          await createFile(newPath, content);
-        }
-        
-        await deleteFile(oldPath);
-        
-        toast({
-          title: "Renamed successfully",
-          description: `${item.name} has been renamed to ${newName}`,
-        });
-        onRefresh();
-      } catch (error) {
-        toast({
-          title: "Error renaming file",
-          description: error instanceof Error ? error.message : "Failed to rename file",
-          variant: "destructive",
-        });
-      }
-    }
-    setIsEditing(!isEditing);
-  };
-
-  const handleCreateNew = async () => {
-    if (!newItemName) return;
-    
-    try {
-      const newPath = `${item.path}/${newItemName}`.replace(/^\/+/, '');
-      await createFile(newPath, "", newItemType === "directory");
-      toast({
-        title: "Created successfully",
-        description: `${newItemName} has been created`,
-      });
-      setNewItemName("");
-      setShowCreateNew(false);
-      if (expanded) {
-        loadChildren();
-      } else {
-        setExpanded(true);
-      }
-    } catch (error) {
-      toast({
-        title: "Error creating file",
-        description: error instanceof Error ? error.message : "Failed to create file",
-        variant: "destructive",
-      });
-    }
-  };
-
-  return (
-    <div>
-      <div
-        className={cn(
-          "flex items-center py-1 px-2 hover:bg-accent/50 group",
-          depth > 0 && "ml-4"
-        )}
-      >
-        <div 
-          className="flex-1 flex items-center cursor-pointer" 
-          onClick={() => {
-            if (item.isDirectory) {
-              setExpanded(!expanded);
-            } else {
-              handleFileClick();
-            }
-          }}
-        >
-          {item.isDirectory && (
-            expanded ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />
-          )}
-          {item.isDirectory ? (
-            <Folder className="h-4 w-4 mr-2 text-blue-500" />
-          ) : (
-            <File className="h-4 w-4 mr-2 text-gray-500" />
-          )}
-          {isEditing ? (
-            <Input
-              className="h-6 py-0 px-1"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-            />
-          ) : (
-            <span className="text-sm">{item.name}</span>
-          )}
-        </div>
-        
-        <div className="hidden group-hover:flex items-center gap-1">
-          {isEditing ? (
-            <>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleRename}>
-                <Save className="h-3 w-3" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditing(false)}>
-                <X className="h-3 w-3" />
-              </Button>
-            </>
-          ) : (
-            <>
-              {item.isDirectory && (
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowCreateNew(true)}>
-                  <Plus className="h-3 w-3" />
-                </Button>
-              )}
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditing(true)}>
-                <Edit className="h-3 w-3" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleDelete}>
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {showCreateNew && (
-        <div className="ml-6 flex items-center gap-2 p-2">
-          <Input
-            className="h-6 py-0 px-1"
-            placeholder="Name"
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleCreateNew()}
-          />
-          <select 
-            className="h-6 text-sm border rounded"
-            value={newItemType}
-            onChange={(e) => setNewItemType(e.target.value as "file" | "directory")}
-          >
-            <option value="file">File</option>
-            <option value="directory">Directory</option>
-          </select>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCreateNew}>
-            <Save className="h-3 w-3" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowCreateNew(false)}>
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
-
-      {item.isDirectory && expanded && (
-        <div>
-          {isLoading ? (
-            <div className="ml-4 py-2 text-sm text-muted-foreground">Loading...</div>
-          ) : (
-            children.map((child, index) => (
-              <FileTreeNode 
-                key={index} 
-                item={child} 
-                depth={depth + 1} 
-                onRefresh={loadChildren}
-                onFileSelect={onFileSelect}
-              />
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
+interface FileItem {
+  name: string;
+  isDirectory: boolean;
+  path: string;
+  isExpanded?: boolean;
+  children?: FileItem[];
+}
 
 const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
-  const [rootFiles, setRootFiles] = useState<FileTreeItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [files, setFiles] = useState<FileItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
+  const [draggedItem, setDraggedItem] = useState<FileItem | null>(null);
+  const [dragOverPath, setDragOverPath] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const loadRootFiles = async () => {
+  const fetchFiles = useCallback(async (path: string = '') => {
     try {
-      setIsLoading(true);
-      const files = await listFiles("");
-      const sortedFiles = files.sort((a, b) => {
-        if (a.isDirectory && !b.isDirectory) return -1;
-        if (!a.isDirectory && b.isDirectory) return 1;
-        return a.name.localeCompare(b.name);
-      });
-      
-      setRootFiles(sortedFiles.map(file => ({
-        ...file,
-        path: file.name,
-      })));
-    } catch (error) {
-      toast({
-        title: "Error loading files",
-        description: error instanceof Error ? error.message : "Failed to load files",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      const items = await listFiles(path);
+      const filteredItems = items
+        .filter(item => !shouldIgnore(item.name))
+        .map(item => ({
+          ...item,
+          path: path ? `${path}/${item.name}` : item.name,
+          children: item.isDirectory ? [] : undefined,
+        }));
+      return sortFiles(filteredItems);
+    } catch (err) {
+      console.error('Error fetching files:', err);
+      setError('Failed to fetch files');
+      return [];
+    }
+  }, []);
+
+  const loadDirectory = useCallback(async (path: string) => {
+    const children = await fetchFiles(path);
+    setFiles(prevFiles => {
+      const updateChildren = (items: FileItem[]): FileItem[] => {
+        return items.map(item => {
+          if (item.path === path) {
+            return { ...item, children };
+          }
+          if (item.children) {
+            return { ...item, children: updateChildren(item.children) };
+          }
+          return item;
+        });
+      };
+      return updateChildren(prevFiles);
+    });
+  }, [fetchFiles]);
+
+  const handleFileClick = useCallback(async (file: FileItem) => {
+    if (file.isDirectory) {
+      const isExpanded = expandedPaths.has(file.path);
+      if (isExpanded) {
+        expandedPaths.delete(file.path);
+        setExpandedPaths(new Set(expandedPaths));
+      } else {
+        setExpandedPaths(new Set([...expandedPaths, file.path]));
+        await loadDirectory(file.path);
+      }
+    } else {
+      try {
+        const content = await readFile(file.path);
+        onFileSelect(content, file.path);
+      } catch (err) {
+        console.error('Error reading file:', err);
+        setError('Failed to read file');
+      }
+    }
+  }, [expandedPaths, loadDirectory, onFileSelect]);
+
+  const handleDragStart = (e: React.DragEvent, item: FileItem) => {
+    setDraggedItem(item);
+    e.dataTransfer.setData('text/plain', item.path);
+  };
+
+  const handleDragOver = (e: React.DragEvent, item: FileItem) => {
+    e.preventDefault();
+    if (item.isDirectory && draggedItem && item.path !== draggedItem.path) {
+      setDragOverPath(item.path);
     }
   };
 
+  const handleDrop = async (e: React.DragEvent, targetItem: FileItem) => {
+    e.preventDefault();
+    setDragOverPath(null);
+
+    if (!draggedItem || !targetItem.isDirectory || targetItem.path === draggedItem.path) {
+      return;
+    }
+
+    try {
+      const content = await readFile(draggedItem.path);
+      const newPath = `${targetItem.path}/${draggedItem.name}`;
+      await createFile(newPath, content);
+      // Refresh both source and target directories
+      await loadDirectory(targetItem.path);
+      await loadDirectory(draggedItem.path.split('/').slice(0, -1).join('/'));
+      toast({
+        title: 'File moved',
+        description: `Successfully moved ${draggedItem.name} to ${targetItem.path}`,
+      });
+    } catch (err) {
+      console.error('Error moving file:', err);
+      toast({
+        title: 'Error',
+        description: 'Failed to move file',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleNewFile = async (path: string) => {
+    const fileName = prompt('Enter file name:');
+    if (!fileName) return;
+
+    const filePath = `${path}/${fileName}`;
+    try {
+      await createFile(filePath, '');
+      await loadDirectory(path);
+      toast({
+        title: 'File created',
+        description: `Successfully created ${fileName}`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to create file',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleNewFolder = async (path: string) => {
+    const folderName = prompt('Enter folder name:');
+    if (!folderName) return;
+
+    const folderPath = `${path}/${folderName}`;
+    try {
+      await createFile(folderPath, '', true);
+      await loadDirectory(path);
+      toast({
+        title: 'Folder created',
+        description: `Successfully created ${folderName}`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to create folder',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRename = async (path: string) => {
+    const newName = prompt('Enter new name:');
+    if (!newName) return;
+
+    const parentPath = path.split('/').slice(0, -1).join('/');
+    const newPath = `${parentPath}/${newName}`;
+    try {
+      const content = await readFile(path);
+      await createFile(newPath, content);
+      // TODO: Add delete API endpoint and call it here
+      await loadDirectory(parentPath);
+      toast({
+        title: 'File renamed',
+        description: `Successfully renamed to ${newName}`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to rename file',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDelete = async (path: string) => {
+    if (!confirm('Are you sure you want to delete this item?')) return;
+
+    try {
+      // TODO: Add delete API endpoint and call it
+      const parentPath = path.split('/').slice(0, -1).join('/');
+      await loadDirectory(parentPath);
+      toast({
+        title: 'Item deleted',
+        description: 'Successfully deleted item',
+      });
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete item',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const renderFile = (file: FileItem, depth: number = 0) => {
+    if (!matchesFilter(file.name, searchQuery)) {
+      return null;
+    }
+
+    const isExpanded = expandedPaths.has(file.path);
+    const { icon: Icon, color } = getFileIcon(file.name, file.isDirectory);
+
+    return (
+      <div key={file.path}>
+        <FileContextMenu
+          isDirectory={file.isDirectory}
+          path={file.path}
+          onNewFile={handleNewFile}
+          onNewFolder={handleNewFolder}
+          onRename={handleRename}
+          onDelete={handleDelete}
+          onRefresh={() => loadDirectory(file.path)}
+        >
+          <div
+            className={cn(
+              'flex items-center py-1 px-2 hover:bg-accent/50 cursor-pointer select-none',
+              dragOverPath === file.path && 'bg-accent/50 border-t-2 border-primary',
+            )}
+            style={{ paddingLeft: `${depth * 12 + 8}px` }}
+            onClick={() => handleFileClick(file)}
+            draggable
+            onDragStart={(e) => handleDragStart(e, file)}
+            onDragOver={(e) => handleDragOver(e, file)}
+            onDrop={(e) => handleDrop(e, file)}
+            onDragLeave={() => setDragOverPath(null)}
+          >
+            {file.isDirectory && (
+              <div className="mr-1">
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </div>
+            )}
+            <Icon className="h-4 w-4 mr-2" style={{ color }} />
+            <span className="text-sm">{file.name}</span>
+          </div>
+        </FileContextMenu>
+        {isExpanded && file.children && (
+          <div>
+            {file.children.map(child => renderFile(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   useEffect(() => {
-    loadRootFiles();
-  }, []);
+    fetchFiles().then(setFiles);
+  }, [fetchFiles]);
 
   return (
-    <div className="h-full w-64 border-r border-border/40 bg-background overflow-y-auto">
-      <div className="p-2 border-b border-border/40 flex items-center justify-between">
-        <h3 className="font-medium">Project Files</h3>
-        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={loadRootFiles}>
-          <svg className="h-4 w-4" viewBox="0 0 24 24">
-            <path
-              fill="currentColor"
-              d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"
-            />
-          </svg>
-        </Button>
+    <div className="w-64 h-full flex flex-col border-r border-border/40">
+      <div className="p-2 border-b border-border/40">
+        <div className="relative">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search files..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8"
+          />
+        </div>
       </div>
-      <div className="p-2">
-        {isLoading ? (
-          <div className="py-2 text-sm text-muted-foreground">Loading...</div>
-        ) : (
-          rootFiles.map((item, index) => (
-            <FileTreeNode 
-              key={index} 
-              item={item} 
-              onRefresh={loadRootFiles}
-              onFileSelect={onFileSelect}
-            />
-          ))
+      <div className="flex-1 overflow-auto p-2">
+        {error && (
+          <Alert variant="destructive" className="mb-2">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
+        {files.map(file => renderFile(file))}
       </div>
     </div>
   );
