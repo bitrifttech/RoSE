@@ -1,7 +1,6 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Terminal from "@/components/Terminal";
@@ -16,6 +15,8 @@ import { ContainerList } from "@/components/ContainerList";
 import { Container } from "@/types/container";
 import { debounce } from "@/utils/debounce";
 import { updateFile } from "@/lib/api";
+import EditorTabs from "@/components/EditorTabs";
+import { createEditorTab, getLanguageFromPath } from "@/utils/editor";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -24,6 +25,14 @@ const ProjectDesign = () => {
   const [code, setCode] = useState<string>(`// Write your code here
 console.log("Hello, World!");`);
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
+  const [openTabs, setOpenTabs] = useState<Array<{
+    id: string;
+    path: string;
+    content: string;
+    language: string;
+    isDirty: boolean;
+  }>>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [shellSocket, setShellSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [containers, setContainers] = useState<Array<{ id: string }>>([]);
@@ -169,21 +178,66 @@ console.log("Hello, World!");`);
     }
   }, [shellSocket]);
 
-  const handleFileSelect = (content: string, path: string) => {
+  const handleFileSelect = async (content: string, path: string) => {
     console.log("File selected, content:", content);
-    setCode(content);
-    setCurrentFilePath(path);
+    
+    // Check if file is already open
+    const existingTab = openTabs.find(tab => tab.path === path);
+    if (existingTab) {
+      setActiveTabId(existingTab.id);
+      return;
+    }
+
+    // Create new tab
+    const newTab = createEditorTab(path, content);
+    setOpenTabs(prev => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+  };
+
+  const handleTabClose = (tabId: string) => {
+    const tab = openTabs.find(t => t.id === tabId);
+    if (tab?.isDirty) {
+      // TODO: Show confirmation dialog
+      if (!confirm('You have unsaved changes. Close anyway?')) {
+        return;
+      }
+    }
+
+    setOpenTabs(prev => prev.filter(t => t.id !== tabId));
+    if (activeTabId === tabId) {
+      const remainingTabs = openTabs.filter(t => t.id !== tabId);
+      setActiveTabId(remainingTabs.length > 0 ? remainingTabs[0].id : null);
+    }
+  };
+
+  const handleTabSelect = (tabId: string) => {
+    setActiveTabId(tabId);
   };
 
   const handleCodeChange = useCallback(async (value: string | undefined) => {
     const newCode = value ?? "";
-    setCode(newCode);
+    const activeTab = openTabs.find(tab => tab.id === activeTabId);
+    if (!activeTab) return;
+
+    setOpenTabs(prev => prev.map(tab => 
+      tab.id === activeTabId
+        ? { ...tab, content: newCode, isDirty: true }
+        : tab
+    ));
     
-    if (currentFilePath) {
+    if (activeTab.path) {
       try {
-        console.log('Saving file:', currentFilePath);
-        await updateFile(currentFilePath, newCode);
+        console.log('Saving file:', activeTab.path);
+        await updateFile(activeTab.path, newCode);
         console.log('File saved successfully');
+        
+        // Mark tab as clean after successful save
+        setOpenTabs(prev => prev.map(tab => 
+          tab.id === activeTabId
+            ? { ...tab, isDirty: false }
+            : tab
+        ));
+        
         toast({
           title: "File saved",
           description: "Changes have been saved successfully",
@@ -197,7 +251,7 @@ console.log("Hello, World!");`);
         });
       }
     }
-  }, [currentFilePath]);
+  }, [activeTabId, openTabs]);
 
   // Debounce the save operation
   const debouncedHandleCodeChange = useCallback(
@@ -206,6 +260,30 @@ console.log("Hello, World!");`);
     }, 1000),
     [handleCodeChange]
   );
+
+  const handleSave = useCallback(async () => {
+    const activeTab = openTabs.find(tab => tab.id === activeTabId);
+    if (!activeTab) return;
+
+    try {
+      await updateFile(activeTab.path, activeTab.content);
+      setOpenTabs(prev => prev.map(tab => 
+        tab.id === activeTabId
+          ? { ...tab, isDirty: false }
+          : tab
+      ));
+      toast({
+        title: "File saved",
+        description: "Changes have been saved successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error saving file",
+        description: error instanceof Error ? error.message : "Failed to save file",
+        variant: "destructive",
+      });
+    }
+  }, [activeTabId, openTabs]);
 
   // Cleanup WebSocket connection when component unmounts
   useEffect(() => {
@@ -287,11 +365,22 @@ console.log("Hello, World!");`);
                 <div className="h-full rounded-lg border border-border/40 bg-background p-4">
                   <div className="flex flex-row h-full">
                     <FileExplorer onFileSelect={handleFileSelect} />
-                    <div className="flex-1 h-full">
-                      <CodeEditor 
-                        value={code} 
-                        onChange={debouncedHandleCodeChange}
+                    <div className="flex-1 h-full flex flex-col">
+                      <EditorTabs
+                        tabs={openTabs}
+                        activeTabId={activeTabId}
+                        onTabSelect={handleTabSelect}
+                        onTabClose={handleTabClose}
                       />
+                      {activeTabId && (
+                        <CodeEditor 
+                          value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
+                          onChange={debouncedHandleCodeChange}
+                          language={openTabs.find(t => t.id === activeTabId)?.language}
+                          path={openTabs.find(t => t.id === activeTabId)?.path}
+                          onSave={handleSave}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
