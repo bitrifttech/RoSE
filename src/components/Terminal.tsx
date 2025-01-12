@@ -1,45 +1,130 @@
-import React, { useEffect, useRef, useState } from "react";
-import { cn } from "@/lib/utils";
+import React, { useEffect, useRef } from "react";
+import { Terminal as XTerm } from 'xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import 'xterm/css/xterm.css';
 
 interface TerminalProps {
   shellSocket: WebSocket | null;
 }
 
 const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
-  const [lines, setLines] = useState<string[]>([]);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const xtermRef = useRef<XTerm>();
+  const fitAddonRef = useRef<FitAddon>();
 
   useEffect(() => {
-    if (shellSocket) {
-      const handleMessage = (event: MessageEvent) => {
-        setLines(prev => [...prev, event.data]);
-        // Scroll to bottom
-        if (terminalRef.current) {
-          terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
-        }
-      };
+    // Initialize terminal
+    if (!terminalRef.current || xtermRef.current) return;
 
-      shellSocket.addEventListener('message', handleMessage);
+    const term = new XTerm({
+      cursorBlink: true,
+      fontSize: 14,
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      theme: {
+        background: '#000000',
+        foreground: '#ffffff'
+      }
+    });
 
-      return () => {
-        shellSocket.removeEventListener('message', handleMessage);
-      };
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+
+    term.open(terminalRef.current);
+    fitAddon.fit();
+
+    xtermRef.current = term;
+    fitAddonRef.current = fitAddon;
+
+    // Handle terminal input
+    term.onData(data => {
+      if (shellSocket?.readyState === WebSocket.OPEN) {
+        shellSocket.send(JSON.stringify({
+          type: 'input',
+          data: data
+        }));
+      }
+    });
+
+    // Handle window resize
+    const handleResize = () => {
+      fitAddon.fit();
+      if (shellSocket?.readyState === WebSocket.OPEN) {
+        shellSocket.send(JSON.stringify({
+          type: 'resize',
+          data: {
+            cols: term.cols,
+            rows: term.rows
+          }
+        }));
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      term.dispose();
+    };
+  }, []);
+
+  // Handle WebSocket messages
+  useEffect(() => {
+    if (!xtermRef.current || !shellSocket) return;
+
+    const term = xtermRef.current;
+
+    // Write initial message
+    if (!shellSocket) {
+      term.writeln('\r\nWaiting for connection...\r\n');
     }
+
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const message = JSON.parse(event.data);
+        switch (message.type) {
+          case 'output':
+            term.write(message.data);
+            break;
+          case 'connected':
+            term.writeln(`\r\nShell session started (${message.data.shell})`);
+            term.writeln(`Working directory: ${message.data.cwd}`);
+            term.writeln('');
+            break;
+        }
+      } catch (error) {
+        console.error('Error processing message:', error);
+      }
+    };
+
+    const handleOpen = () => {
+      term.clear();
+      term.writeln('\r\n🚀 Connected to shell server\r\n');
+    };
+
+    const handleClose = () => {
+      term.writeln('\r\n❌ Disconnected from shell server\r\n');
+    };
+
+    const handleError = () => {
+      term.writeln('\r\n⚠️ Error connecting to shell server\r\n');
+    };
+
+    shellSocket.addEventListener('message', handleMessage);
+    shellSocket.addEventListener('open', handleOpen);
+    shellSocket.addEventListener('close', handleClose);
+    shellSocket.addEventListener('error', handleError);
+
+    return () => {
+      shellSocket.removeEventListener('message', handleMessage);
+      shellSocket.removeEventListener('open', handleOpen);
+      shellSocket.removeEventListener('close', handleClose);
+      shellSocket.removeEventListener('error', handleError);
+    };
   }, [shellSocket]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (shellSocket && shellSocket.readyState === WebSocket.OPEN) {
-      // Send key events to the terminal
-      shellSocket.send(JSON.stringify({
-        type: 'input',
-        data: e.key
-      }));
-    }
-  };
-
   return (
-    <div className="h-[300px] w-full rounded-lg border border-border/40 bg-background p-4 font-mono text-sm text-green-400">
-      <div className="flex items-center justify-between mb-2 border-b border-border/40 pb-2">
+    <div className="relative h-[300px] w-full rounded-lg border border-border/40 bg-background overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/40">
         <div className="flex space-x-2">
           <div className="h-3 w-3 rounded-full bg-red-500"></div>
           <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
@@ -48,26 +133,9 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
         <span className="text-xs text-muted-foreground">Terminal</span>
       </div>
       <div 
-        ref={terminalRef}
-        className="h-[calc(100%-2rem)] overflow-auto focus:outline-none"
-        tabIndex={0}
-        onKeyDown={handleKeyDown}
-      >
-        {lines.length === 0 ? (
-          <div className="flex items-start">
-            <span className="text-blue-400 mr-2">$</span>
-            <span>{shellSocket ? 'Connected to terminal...' : 'Waiting for connection...'}</span>
-          </div>
-        ) : (
-          <div className="space-y-1 whitespace-pre-wrap">
-            {lines.map((line, index) => (
-              <div key={index} className="break-all">
-                {line}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        ref={terminalRef} 
+        className="h-[calc(100%-2.5rem)] w-full"
+      />
     </div>
   );
 };

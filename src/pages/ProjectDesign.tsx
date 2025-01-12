@@ -159,30 +159,27 @@ console.log("Hello, World!");`);
 
     shell.onopen = () => {
       console.log('Shell connection established');
-      toast({
-        title: "Terminal connected",
-        description: "Successfully connected to the terminal",
-      });
+      // Send initial terminal size
+      const terminalElement = document.querySelector('.xterm-screen');
+      if (terminalElement) {
+        const { width, height } = terminalElement.getBoundingClientRect();
+        shell.send(JSON.stringify({
+          type: 'resize',
+          data: {
+            cols: Math.floor(width / 9), // Approximate character width
+            rows: Math.floor(height / 17) // Approximate character height
+          }
+        }));
+      }
     };
 
     shell.onclose = () => {
       console.log('Shell connection closed');
       setShellSocket(null);
-      toast({
-        title: "Terminal disconnected",
-        description: "Terminal connection lost",
-        variant: "destructive",
-      });
     };
 
     shell.onerror = (error) => {
       console.error('Shell WebSocket error:', error);
-      toast({
-        title: "Terminal connection error",
-        description: "Failed to connect to the terminal",
-        variant: "destructive",
-      });
-      // Clean up the failed shell connection
       shell.close();
       setShellSocket(null);
     };
@@ -200,6 +197,7 @@ console.log("Hello, World!");`);
       shellSocket.close();
       setShellSocket(null);
     }
+    setIsConnected(false);
   }, [socket, shellSocket]);
 
   // Refresh containers periodically
