@@ -22,6 +22,7 @@ const ProjectDesign = () => {
   const [code, setCode] = useState<string>(`// Write your code here
 console.log("Hello, World!");`);
   const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [shellSocket, setShellSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isContainerRunning, setIsContainerRunning] = useState(false);
   const [containerId, setContainerId] = useState<string | null>(null);
@@ -43,15 +44,14 @@ console.log("Hello, World!");`);
       setContainers(containers);
       setContainerError(undefined);
       
-      // Update container running state based on if we find our container
-      if (containerId) {
-        setIsContainerRunning(containers.some(c => c.id === containerId));
-      }
+      // Update container running state based on if there are any containers
+      setIsContainerRunning(containers.length > 0);
     } catch (err) {
       setContainerError(err instanceof Error ? err.message : 'Failed to fetch containers');
       setContainers([]);
+      setIsContainerRunning(false);
     }
-  }, [containerId]);
+  }, []);
 
   const handleStartContainer = useCallback(async () => {
     try {
@@ -83,10 +83,19 @@ console.log("Hello, World!");`);
   }, [toast, refreshContainers]);
 
   const handleStopContainer = useCallback(async () => {
-    if (!containerId) return;
+    // If there's a container running, use the first one in the list
+    const containerToStop = containers[0];
+    if (!containerToStop) {
+      toast({
+        title: "No container to stop",
+        description: "There are no running containers",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
-      const response = await fetch(`/api/container/${containerId}`, {
+      const response = await fetch(`/api/container/${containerToStop.id}`, {
         method: 'DELETE',
         headers: {
           'Accept': 'application/json',
@@ -99,9 +108,12 @@ console.log("Hello, World!");`);
       setIsContainerRunning(false);
       toast({
         title: "Container stopped",
-        description: `Container ID: ${containerId.substring(0, 12)}`,
+        description: `Container ID: ${containerToStop.id.substring(0, 12)}`,
       });
-      setContainerId(null);
+      // Only clear containerId if it matches the one we just stopped
+      if (containerId === containerToStop.id) {
+        setContainerId(null);
+      }
       refreshContainers();
     } catch (err) {
       toast({
@@ -110,10 +122,13 @@ console.log("Hello, World!");`);
         variant: "destructive",
       });
     }
-  }, [containerId, toast, refreshContainers]);
+  }, [containers, containerId, toast, refreshContainers]);
 
   const connectToServer = useCallback(() => {
-    const ws = new WebSocket('/api/ws');
+    // Connect to main WebSocket through the proxy
+    const ws = new WebSocket('ws://127.0.0.1:8081/api/ws');
+    // Connect directly to shell WebSocket
+    const shell = new WebSocket('ws://127.0.0.1:8030/shell');
 
     ws.onopen = () => {
       setIsConnected(true);
@@ -142,14 +157,50 @@ console.log("Hello, World!");`);
       });
     };
 
+    shell.onopen = () => {
+      console.log('Shell connection established');
+      toast({
+        title: "Terminal connected",
+        description: "Successfully connected to the terminal",
+      });
+    };
+
+    shell.onclose = () => {
+      console.log('Shell connection closed');
+      setShellSocket(null);
+      toast({
+        title: "Terminal disconnected",
+        description: "Terminal connection lost",
+        variant: "destructive",
+      });
+    };
+
+    shell.onerror = (error) => {
+      console.error('Shell WebSocket error:', error);
+      toast({
+        title: "Terminal connection error",
+        description: "Failed to connect to the terminal",
+        variant: "destructive",
+      });
+      // Clean up the failed shell connection
+      shell.close();
+      setShellSocket(null);
+    };
+
     setSocket(ws);
+    setShellSocket(shell);
   }, [toast]);
 
   const disconnectFromServer = useCallback(() => {
     if (socket) {
       socket.close();
+      setSocket(null);
     }
-  }, [socket]);
+    if (shellSocket) {
+      shellSocket.close();
+      setShellSocket(null);
+    }
+  }, [socket, shellSocket]);
 
   // Refresh containers periodically
   useEffect(() => {
@@ -164,8 +215,11 @@ console.log("Hello, World!");`);
       if (socket) {
         socket.close();
       }
+      if (shellSocket) {
+        shellSocket.close();
+      }
     };
-  }, [socket]);
+  }, [socket, shellSocket]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -239,7 +293,7 @@ console.log("Hello, World!");`);
 
         {/* Terminal Window */}
         <div className="p-4">
-          <Terminal />
+          <Terminal shellSocket={shellSocket} />
         </div>
       </div>
     </div>
