@@ -19,6 +19,7 @@ import EditorTabs from "@/components/EditorTabs";
 import { createEditorTab, getLanguageFromPath } from "@/utils/editor";
 import { PreviewWindow } from "@/components/PreviewWindow";
 import { ServerControls } from "@/components/ServerControls";
+import { EditorSettingsPanel } from "@/components/EditorSettingsPanel";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -318,6 +319,7 @@ console.log("Hello, World!");`);
             </Button>
           </div>
           <div className="flex items-center space-x-4">
+            <EditorSettingsPanel />
             <ServerControls />
             <DarkModeToggle />
           </div>
