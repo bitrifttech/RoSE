@@ -77,13 +77,12 @@ console.log("Hello, World!");`);
       if (!response.ok) {
         throw new Error('Failed to start container');
       }
-      const container = await response.json();
-      setContainerId(container.id);
+      
+      setIsContainerRunning(true);
       toast({
         title: "Container started",
-        description: `Container ID: ${container.id.substring(0, 12)}`,
+        description: "Server is now running",
       });
-      refreshContainers();
     } catch (err) {
       toast({
         title: "Failed to start container",
@@ -91,7 +90,7 @@ console.log("Hello, World!");`);
         variant: "destructive",
       });
     }
-  }, [toast, refreshContainers]);
+  }, [toast]);
 
   const handleStopContainer = useCallback(async () => {
     // If there's a container running, use the first one in the list
