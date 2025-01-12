@@ -317,6 +317,19 @@ function createApp() {
     app.use(express.static(path.join(__dirname, '../public')));
     app.use('/node_modules', express.static(path.join(__dirname, '../node_modules')));
 
+    // Add CORS middleware
+    app.use((req, res, next) => {
+        res.header('Access-Control-Allow-Origin', 'http://127.0.0.1:8080');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+        
+        // Handle preflight requests
+        if (req.method === 'OPTIONS') {
+            return res.sendStatus(200);
+        }
+        next();
+    });
+
     // Constants
     const APP_DIR = path.join(__dirname, '../app');
 
