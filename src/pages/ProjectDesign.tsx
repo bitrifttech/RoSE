@@ -11,6 +11,9 @@ import FileExplorer from "@/components/FileExplorer";
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
+import { ContainerControls } from "@/components/ContainerControls";
+import { ContainerList } from "@/components/ContainerList";
+import { Container } from "@/types/container";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -20,9 +23,84 @@ const ProjectDesign = () => {
 console.log("Hello, World!");`);
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isContainerRunning, setIsContainerRunning] = useState(false);
+  const [containerId, setContainerId] = useState<string | null>(null);
+  const [containers, setContainers] = useState<Container[]>([]);
+  const [containerError, setContainerError] = useState<string>();
+
+  const refreshContainers = useCallback(async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/containers');
+      if (!response.ok) {
+        throw new Error('Failed to fetch containers');
+      }
+      const containers = await response.json();
+      setContainers(containers);
+      setContainerError(undefined);
+      
+      // Update container running state based on if we find our container
+      if (containerId) {
+        setIsContainerRunning(containers.some(c => c.id === containerId));
+      }
+    } catch (err) {
+      setContainerError(err instanceof Error ? err.message : 'Failed to fetch containers');
+      setContainers([]);
+    }
+  }, [containerId]);
+
+  const handleStartContainer = useCallback(async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/container', {
+        method: 'POST'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to start container');
+      }
+      const data = await response.json();
+      setContainerId(data.containerId);
+      setIsContainerRunning(true);
+      toast({
+        title: "Container started",
+        description: `Container ID: ${data.containerId.substring(0, 12)}`,
+      });
+      refreshContainers();
+    } catch (err) {
+      toast({
+        title: "Failed to start container",
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: "destructive",
+      });
+    }
+  }, [toast, refreshContainers]);
+
+  const handleStopContainer = useCallback(async () => {
+    if (!containerId) return;
+    
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/container/${containerId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to stop container');
+      }
+      setIsContainerRunning(false);
+      toast({
+        title: "Container stopped",
+        description: `Container ID: ${containerId.substring(0, 12)}`,
+      });
+      setContainerId(null);
+      refreshContainers();
+    } catch (err) {
+      toast({
+        title: "Failed to stop container",
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: "destructive",
+      });
+    }
+  }, [containerId, toast, refreshContainers]);
 
   const connectToServer = useCallback(() => {
-    const ws = new WebSocket('ws://127.0.0.1:8030');
+    const ws = new WebSocket('ws://127.0.0.1:8000');
 
     ws.onopen = () => {
       setIsConnected(true);
@@ -37,11 +115,9 @@ console.log("Hello, World!");`);
       setSocket(null);
       toast({
         title: "Disconnected from server",
-        description: "Connection lost. Attempting to reconnect...",
+        description: "Connection lost",
         variant: "destructive",
       });
-      // Attempt to reconnect after 3 seconds
-      setTimeout(connectToServer, 3000);
     };
 
     ws.onerror = (error) => {
@@ -53,28 +129,30 @@ console.log("Hello, World!");`);
       });
     };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        // Handle incoming messages here
-        console.log('Received message:', data);
-      } catch (error) {
-        console.error('Error parsing message:', error);
-      }
-    };
-
     setSocket(ws);
   }, [toast]);
 
-  useEffect(() => {
-    connectToServer();
+  const disconnectFromServer = useCallback(() => {
+    if (socket) {
+      socket.close();
+    }
+  }, [socket]);
 
+  // Refresh containers periodically
+  useEffect(() => {
+    refreshContainers();
+    const interval = setInterval(refreshContainers, 5000);
+    return () => clearInterval(interval);
+  }, [refreshContainers]);
+
+  // Cleanup socket on unmount
+  useEffect(() => {
     return () => {
       if (socket) {
         socket.close();
       }
     };
-  }, [connectToServer]);
+  }, [socket]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,14 +169,23 @@ console.log("Hello, World!");`);
             </Button>
             <ConnectionStatus isConnected={isConnected} />
           </div>
-          <h1 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-            Project Design
-          </h1>
+          <ContainerControls
+            isConnected={isConnected}
+            isContainerRunning={isContainerRunning}
+            onStartContainer={handleStartContainer}
+            onStopContainer={handleStopContainer}
+            onConnect={connectToServer}
+            onDisconnect={disconnectFromServer}
+          />
           <DarkModeToggle />
         </div>
       </header>
 
       <div className="flex flex-col h-[calc(100vh-4rem)] mt-16">
+        <div className="container py-4">
+          <ContainerList containers={containers} error={containerError} />
+        </div>
+        
         <div className="flex flex-1 min-h-0">
           {/* Chat Window */}
           <div className="w-[400px] border-r border-border/40 p-4 bg-sidebar">
