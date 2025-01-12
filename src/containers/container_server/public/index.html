@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Docker Command Line</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css">
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      justify-content: center;
+      align-items: center;
+      background-color: #1e1e1e;
+    }
+    #terminal {
+      width: 80%;
+      height: 80%;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+  <script>
+    const terminal = new Terminal();
+    terminal.open(document.getElementById('terminal'));
+
+    const socket = new WebSocket(`ws://${window.location.host}`);
+
+    socket.onopen = () => terminal.write('\r\nConnected to Docker container\r\n');
+    socket.onmessage = (event) => terminal.write(event.data);
+    terminal.onData((data) => socket.send(data));
+  </script>
+</body>
+</html>

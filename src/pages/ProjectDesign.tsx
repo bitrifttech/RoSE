@@ -23,10 +23,10 @@ const ProjectDesign = () => {
 console.log("Hello, World!");`);
   const [shellSocket, setShellSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [isContainerRunning, setIsContainerRunning] = useState(false);
+  const [containers, setContainers] = useState<Array<{ id: string }>>([]);
   const [containerId, setContainerId] = useState<string | null>(null);
-  const [containers, setContainers] = useState<Container[]>([]);
   const [containerError, setContainerError] = useState<string>();
+  const [isContainerRunning, setIsContainerRunning] = useState(false);
 
   const refreshContainers = useCallback(async () => {
     try {
@@ -64,12 +64,11 @@ console.log("Hello, World!");`);
       if (!response.ok) {
         throw new Error('Failed to start container');
       }
-      const data = await response.json();
-      setContainerId(data.containerId);
-      setIsContainerRunning(true);
+      const container = await response.json();
+      setContainerId(container.id);
       toast({
         title: "Container started",
-        description: `Container ID: ${data.containerId.substring(0, 12)}`,
+        description: `Container ID: ${container.id.substring(0, 12)}`,
       });
       refreshContainers();
     } catch (err) {
@@ -104,7 +103,6 @@ console.log("Hello, World!");`);
       if (!response.ok) {
         throw new Error('Failed to stop container');
       }
-      setIsContainerRunning(false);
       toast({
         title: "Container stopped",
         description: `Container ID: ${containerToStop.id.substring(0, 12)}`,
@@ -199,14 +197,27 @@ console.log("Hello, World!");`);
             </Button>
             <ConnectionStatus isConnected={isConnected} />
           </div>
-          <ContainerControls
-            isConnected={isConnected}
-            isContainerRunning={isContainerRunning}
-            onStartContainer={handleStartContainer}
-            onStopContainer={handleStopContainer}
-            onConnect={connectToServer}
-            onDisconnect={disconnectFromServer}
-          />
+          <div className="flex items-center space-x-4">
+            <Button
+              onClick={handleStartContainer}
+              disabled={isContainerRunning}
+            >
+              Start Container
+            </Button>
+            <Button
+              onClick={handleStopContainer}
+              disabled={!isContainerRunning}
+              variant="destructive"
+            >
+              Stop Container
+            </Button>
+            <Button
+              onClick={isConnected ? disconnectFromServer : connectToServer}
+              variant={isConnected ? "destructive" : "default"}
+            >
+              {isConnected ? "Disconnect" : "Connect"}
+            </Button>
+          </div>
           <DarkModeToggle />
         </div>
       </header>
