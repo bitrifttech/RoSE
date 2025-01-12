@@ -30,7 +30,12 @@ console.log("Hello, World!");`);
 
   const refreshContainers = useCallback(async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/containers');
+      const response = await fetch('/api/containers', {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch containers');
       }
@@ -50,8 +55,12 @@ console.log("Hello, World!");`);
 
   const handleStartContainer = useCallback(async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/container', {
-        method: 'POST'
+      const response = await fetch('/api/container', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
       if (!response.ok) {
         throw new Error('Failed to start container');
@@ -77,8 +86,12 @@ console.log("Hello, World!");`);
     if (!containerId) return;
     
     try {
-      const response = await fetch(`http://127.0.0.1:8000/container/${containerId}`, {
-        method: 'DELETE'
+      const response = await fetch(`/api/container/${containerId}`, {
+        method: 'DELETE',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       });
       if (!response.ok) {
         throw new Error('Failed to stop container');
@@ -100,7 +113,7 @@ console.log("Hello, World!");`);
   }, [containerId, toast, refreshContainers]);
 
   const connectToServer = useCallback(() => {
-    const ws = new WebSocket('ws://127.0.0.1:8000');
+    const ws = new WebSocket('/api/ws');
 
     ws.onopen = () => {
       setIsConnected(true);
