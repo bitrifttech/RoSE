@@ -41,6 +41,7 @@ console.log("Hello, World!");`);
   const [containerId, setContainerId] = useState<string | null>(null);
   const [containerError, setContainerError] = useState<string>();
   const [isContainerRunning, setIsContainerRunning] = useState(false);
+  const [showContainerInfo, setShowContainerInfo] = useState(false);
 
   const refreshContainers = useCallback(async () => {
     try {
@@ -315,40 +316,16 @@ console.log("Hello, World!");`);
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
-            <ConnectionStatus isConnected={isConnected} />
           </div>
           <div className="flex items-center space-x-4">
             <ServerControls />
-            <Button
-              onClick={handleStartContainer}
-              disabled={isContainerRunning}
-            >
-              Start Container
-            </Button>
-            <Button
-              onClick={handleStopContainer}
-              disabled={!isContainerRunning}
-              variant="destructive"
-            >
-              Stop Container
-            </Button>
-            <Button
-              onClick={isConnected ? disconnectFromServer : connectToServer}
-              variant={isConnected ? "destructive" : "default"}
-            >
-              {isConnected ? "Disconnect" : "Connect"}
-            </Button>
+            <DarkModeToggle />
           </div>
-          <DarkModeToggle />
         </div>
       </header>
 
       <div className="flex flex-col h-[calc(100vh-4rem)] mt-16">
-        <div className="container py-4">
-          <ContainerList containers={containers} error={containerError} />
-        </div>
-        
-        <div className="flex flex-1 min-h-0">
+        <div className="flex flex-1 min-h-0 pb-4">
           {/* Chat Window */}
           <div className="w-[400px] border-r border-border/40 p-4 bg-sidebar">
             <div className="h-full rounded-lg border border-border/40 bg-background">
@@ -357,17 +334,17 @@ console.log("Hello, World!");`);
           </div>
 
           {/* Code Editor and Preview */}
-          <div className="flex-1">
-            <Tabs defaultValue="editor" className="h-full">
+          <div className="flex-1 p-4">
+            <Tabs defaultValue="editor" className="h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="editor">Code Editor</TabsTrigger>
                 <TabsTrigger value="preview">Preview</TabsTrigger>
               </TabsList>
-              <TabsContent value="editor" className="h-[calc(100%-3rem)]">
+              <TabsContent value="editor" className="flex-1 min-h-0">
                 <div className="h-full rounded-lg border border-border/40 bg-background p-4">
                   <div className="flex flex-row h-full">
                     <FileExplorer onFileSelect={handleFileSelect} />
-                    <div className="flex-1 h-full flex flex-col">
+                    <div className="flex-1 h-full flex flex-col min-h-0">
                       <EditorTabs
                         tabs={openTabs}
                         activeTabId={activeTabId}
@@ -375,19 +352,21 @@ console.log("Hello, World!");`);
                         onTabClose={handleTabClose}
                       />
                       {activeTabId && (
-                        <CodeEditor 
-                          value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
-                          onChange={debouncedHandleCodeChange}
-                          language={openTabs.find(t => t.id === activeTabId)?.language}
-                          path={openTabs.find(t => t.id === activeTabId)?.path}
-                          onSave={handleSave}
-                        />
+                        <div className="flex-1 min-h-0">
+                          <CodeEditor 
+                            value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
+                            onChange={debouncedHandleCodeChange}
+                            language={openTabs.find(t => t.id === activeTabId)?.language}
+                            path={openTabs.find(t => t.id === activeTabId)?.path}
+                            onSave={handleSave}
+                          />
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
               </TabsContent>
-              <TabsContent value="preview" className="h-[calc(100%-3rem)]">
+              <TabsContent value="preview" className="flex-1 min-h-0">
                 <div className="h-full rounded-lg border border-border/40 bg-background p-4">
                   <h2 className="text-lg font-semibold mb-4">Preview</h2>
                   <PreviewWindow url="http://localhost:8040" />
@@ -397,9 +376,42 @@ console.log("Hello, World!");`);
           </div>
         </div>
 
-        {/* Terminal Window */}
-        <div className="p-4">
-          <Terminal shellSocket={shellSocket} />
+        {/* Terminal Section with Controls */}
+        <div className="border-t border-border/40">
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <ContainerControls
+                  isConnected={isConnected}
+                  isContainerRunning={isContainerRunning}
+                  onStartContainer={handleStartContainer}
+                  onStopContainer={handleStopContainer}
+                  onConnect={connectToServer}
+                  onDisconnect={disconnectFromServer}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowContainerInfo(prev => !prev)}
+                  className="gap-2"
+                >
+                  {showContainerInfo ? 'Hide Details' : 'Show Details'}
+                </Button>
+              </div>
+            </div>
+            
+            {/* Collapsible Container Info */}
+            {showContainerInfo && (
+              <div className="mb-4">
+                <ContainerList containers={containers} error={containerError} />
+              </div>
+            )}
+
+            {/* Terminal */}
+            <div className="rounded-lg border border-border/40 bg-background">
+              <Terminal shellSocket={shellSocket} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

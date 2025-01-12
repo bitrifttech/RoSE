@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Play, Square, Power, PowerOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Play, Square } from "lucide-react";
 
-interface ContainerControlsProps {
+export interface ContainerControlsProps {
   isConnected: boolean;
   isContainerRunning: boolean;
   onStartContainer: () => void;
@@ -21,50 +21,53 @@ export function ContainerControls({
   onDisconnect,
   className,
 }: ContainerControlsProps) {
+  const handleToggleContainer = () => {
+    if (isContainerRunning) {
+      onStopContainer();
+    } else {
+      onStartContainer();
+    }
+  };
+
+  const handleToggleConnection = () => {
+    if (isConnected) {
+      onDisconnect();
+    } else {
+      onConnect();
+    }
+  };
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="flex items-center gap-2 border-r border-border/40 pr-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onStartContainer}
-          disabled={isContainerRunning}
-          className="gap-2"
-        >
-          <Play className="h-4 w-4" />
-          Start Container
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onStopContainer}
-          className="gap-2"
-        >
-          <Square className="h-4 w-4" />
-          Stop Container
-        </Button>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onConnect}
-          disabled={isConnected || !isContainerRunning}
-          className="gap-2"
-        >
-          <Power className="h-4 w-4" />
-          Connect
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onDisconnect}
-          disabled={!isConnected}
-          className="gap-2"
-        >
-          <PowerOff className="h-4 w-4" />
-          Disconnect
-        </Button>
+      <Button
+        variant={isContainerRunning ? "destructive" : "default"}
+        size="sm"
+        onClick={handleToggleContainer}
+        className="gap-2"
+      >
+        {isContainerRunning ? (
+          <>
+            <Square className="h-4 w-4" />
+            Stop Container
+          </>
+        ) : (
+          <>
+            <Play className="h-4 w-4" />
+            Start Container
+          </>
+        )}
+      </Button>
+      <Button
+        variant={isConnected ? "destructive" : "default"}
+        size="sm"
+        onClick={handleToggleConnection}
+        className="gap-2"
+      >
+        {isConnected ? "Disconnect" : "Connect"}
+      </Button>
+      <div className="text-sm text-muted-foreground">
+        Container: {isContainerRunning ? 'Running' : 'Stopped'} | 
+        Connection: {isConnected ? 'Connected' : 'Disconnected'}
       </div>
     </div>
   );
