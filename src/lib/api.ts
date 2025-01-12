@@ -33,7 +33,7 @@ export async function readFile(path: string): Promise<string> {
     throw new Error(`Failed to read file: ${response.statusText}`);
   }
   const data = await response.json();
-  return data.content;
+  return typeof data.content === 'string' ? data.content : JSON.stringify(data.content, null, 2);
 }
 
 export async function createFile(path: string, content: string, isDirectory: boolean = false): Promise<void> {

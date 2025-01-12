@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Folder, File, ChevronRight, ChevronDown, Plus, Trash2, Edit, Save, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FileItem, listFiles, createFile, deleteFile, updateFile } from "@/lib/api";
+import { FileItem, listFiles, createFile, deleteFile, updateFile, readFile } from "@/lib/api";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { toast } from "./ui/use-toast";
@@ -16,10 +16,20 @@ interface FileTreeItem {
   children?: FileTreeItem[];
 }
 
-const FileTreeNode = ({ item, depth = 0, onRefresh }: { 
+interface FileExplorerProps {
+  onFileSelect?: (content: string) => void;
+}
+
+const FileTreeNode = ({ 
+  item, 
+  depth = 0, 
+  onRefresh,
+  onFileSelect,
+}: { 
   item: FileTreeItem; 
   depth?: number;
   onRefresh: () => void;
+  onFileSelect?: (content: string) => void;
 }) => {
   const [expanded, setExpanded] = useState(item.expanded || false);
   const [children, setChildren] = useState<FileTreeItem[]>([]);
@@ -29,6 +39,21 @@ const FileTreeNode = ({ item, depth = 0, onRefresh }: {
   const [showCreateNew, setShowCreateNew] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemType, setNewItemType] = useState<"file" | "directory">("file");
+
+  const handleFileClick = async () => {
+    if (!item.isDirectory && onFileSelect) {
+      try {
+        const content = await readFile(item.path);
+        onFileSelect(content);
+      } catch (error) {
+        toast({
+          title: "Error reading file",
+          description: error instanceof Error ? error.message : "Failed to read file",
+          variant: "destructive",
+        });
+      }
+    }
+  };
 
   const loadChildren = async () => {
     if (!item.isDirectory) return;
@@ -93,7 +118,7 @@ const FileTreeNode = ({ item, depth = 0, onRefresh }: {
         if (item.isDirectory) {
           await createFile(newPath, "", true);
         } else {
-          const content = ""; // You might want to read the old file content here
+          const content = await readFile(oldPath);
           await createFile(newPath, content);
         }
         
@@ -151,7 +176,13 @@ const FileTreeNode = ({ item, depth = 0, onRefresh }: {
       >
         <div 
           className="flex-1 flex items-center cursor-pointer" 
-          onClick={() => item.isDirectory && setExpanded(!expanded)}
+          onClick={() => {
+            if (item.isDirectory) {
+              setExpanded(!expanded);
+            } else {
+              handleFileClick();
+            }
+          }}
         >
           {item.isDirectory && (
             expanded ? <ChevronDown className="h-4 w-4 mr-1" /> : <ChevronRight className="h-4 w-4 mr-1" />
@@ -233,7 +264,13 @@ const FileTreeNode = ({ item, depth = 0, onRefresh }: {
             <div className="ml-4 py-2 text-sm text-muted-foreground">Loading...</div>
           ) : (
             children.map((child, index) => (
-              <FileTreeNode key={index} item={child} depth={depth + 1} onRefresh={loadChildren} />
+              <FileTreeNode 
+                key={index} 
+                item={child} 
+                depth={depth + 1} 
+                onRefresh={loadChildren}
+                onFileSelect={onFileSelect}
+              />
             ))
           )}
         </div>
@@ -242,7 +279,7 @@ const FileTreeNode = ({ item, depth = 0, onRefresh }: {
   );
 };
 
-const FileExplorer = () => {
+const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
   const [rootFiles, setRootFiles] = useState<FileTreeItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -293,7 +330,12 @@ const FileExplorer = () => {
           <div className="py-2 text-sm text-muted-foreground">Loading...</div>
         ) : (
           rootFiles.map((item, index) => (
-            <FileTreeNode key={index} item={item} onRefresh={loadRootFiles} />
+            <FileTreeNode 
+              key={index} 
+              item={item} 
+              onRefresh={loadRootFiles}
+              onFileSelect={onFileSelect}
+            />
           ))
         )}
       </div>

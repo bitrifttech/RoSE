@@ -166,6 +166,11 @@ console.log("Hello, World!");`);
     }
   }, [shellSocket]);
 
+  const handleFileSelect = (content: string) => {
+    console.log("File selected, content:", content);
+    setCode(content);
+  };
+
   // Cleanup WebSocket connection when component unmounts
   useEffect(() => {
     return () => {
@@ -244,11 +249,11 @@ console.log("Hello, World!");`);
               </TabsList>
               <TabsContent value="editor" className="h-[calc(100%-3rem)]">
                 <div className="h-full rounded-lg border border-border/40 bg-background p-4">
-                  <div className="h-full flex">
-                    <FileExplorer />
-                    <div className="flex-1">
+                  <div className="flex flex-row h-full">
+                    <FileExplorer onFileSelect={handleFileSelect} />
+                    <div className="flex-1 h-full">
                       <CodeEditor 
-                        value={code}
+                        value={code} 
                         onChange={(value) => setCode(value ?? "")}
                       />
                     </div>
