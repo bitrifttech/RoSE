@@ -17,7 +17,7 @@ interface FileTreeItem {
 }
 
 interface FileExplorerProps {
-  onFileSelect?: (content: string) => void;
+  onFileSelect?: (content: string, path: string) => void;
 }
 
 const FileTreeNode = ({ 
@@ -29,7 +29,7 @@ const FileTreeNode = ({
   item: FileTreeItem; 
   depth?: number;
   onRefresh: () => void;
-  onFileSelect?: (content: string) => void;
+  onFileSelect?: (content: string, path: string) => void;
 }) => {
   const [expanded, setExpanded] = useState(item.expanded || false);
   const [children, setChildren] = useState<FileTreeItem[]>([]);
@@ -44,7 +44,7 @@ const FileTreeNode = ({
     if (!item.isDirectory && onFileSelect) {
       try {
         const content = await readFile(item.path);
-        onFileSelect(content);
+        onFileSelect(content, item.path);
       } catch (error) {
         toast({
           title: "Error reading file",

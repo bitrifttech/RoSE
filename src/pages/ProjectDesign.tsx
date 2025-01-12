@@ -14,6 +14,8 @@ import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { ContainerControls } from "@/components/ContainerControls";
 import { ContainerList } from "@/components/ContainerList";
 import { Container } from "@/types/container";
+import { debounce } from "@/utils/debounce";
+import { updateFile } from "@/lib/api";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -21,6 +23,7 @@ const ProjectDesign = () => {
   const { toast } = useToast();
   const [code, setCode] = useState<string>(`// Write your code here
 console.log("Hello, World!");`);
+  const [currentFilePath, setCurrentFilePath] = useState<string | null>(null);
   const [shellSocket, setShellSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [containers, setContainers] = useState<Array<{ id: string }>>([]);
@@ -166,10 +169,43 @@ console.log("Hello, World!");`);
     }
   }, [shellSocket]);
 
-  const handleFileSelect = (content: string) => {
+  const handleFileSelect = (content: string, path: string) => {
     console.log("File selected, content:", content);
     setCode(content);
+    setCurrentFilePath(path);
   };
+
+  const handleCodeChange = useCallback(async (value: string | undefined) => {
+    const newCode = value ?? "";
+    setCode(newCode);
+    
+    if (currentFilePath) {
+      try {
+        console.log('Saving file:', currentFilePath);
+        await updateFile(currentFilePath, newCode);
+        console.log('File saved successfully');
+        toast({
+          title: "File saved",
+          description: "Changes have been saved successfully",
+        });
+      } catch (error) {
+        console.error('Error saving file:', error);
+        toast({
+          title: "Error saving file",
+          description: error instanceof Error ? error.message : "Failed to save file",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [currentFilePath]);
+
+  // Debounce the save operation
+  const debouncedHandleCodeChange = useCallback(
+    debounce(async (value: string) => {
+      handleCodeChange(value);
+    }, 1000),
+    [handleCodeChange]
+  );
 
   // Cleanup WebSocket connection when component unmounts
   useEffect(() => {
@@ -254,7 +290,7 @@ console.log("Hello, World!");`);
                     <div className="flex-1 h-full">
                       <CodeEditor 
                         value={code} 
-                        onChange={(value) => setCode(value ?? "")}
+                        onChange={debouncedHandleCodeChange}
                       />
                     </div>
                   </div>

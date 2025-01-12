@@ -54,7 +54,7 @@ export async function createFile(path: string, content: string, isDirectory: boo
 export async function updateFile(path: string, content: string): Promise<void> {
   const normalizedPath = path.replace(/^\/+|\/+$/g, '');
   const response = await fetch(`${BASE_URL}/files/${normalizedPath}`, {
-    method: 'PUT',
+    method: 'POST',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
