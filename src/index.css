@@ -167,6 +167,57 @@
   *:focus-visible {
     @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background transition-shadow;
   }
+
+  /* Resizable Panel Styles */
+  [data-panel] {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  [data-panel-group] {
+    display: flex;
+    height: 100%;
+    width: 100%;
+  }
+
+  [data-panel-group][data-panel-group-direction="vertical"] {
+    flex-direction: column;
+  }
+
+  [data-panel-group][data-panel-group-direction="horizontal"] {
+    flex-direction: row;
+  }
+
+  [data-panel-resize-handle] {
+    background-color: transparent;
+    transition: background-color 0.2s linear;
+  }
+
+  [data-panel-resize-handle]:hover {
+    background-color: hsl(var(--accent) / 0.2);
+  }
+
+  [data-panel-resize-handle][data-panel-group-direction="horizontal"] {
+    width: 4px;
+    margin: 0 -2px;
+    cursor: col-resize;
+  }
+
+  [data-panel-resize-handle][data-panel-group-direction="vertical"] {
+    height: 4px;
+    margin: -2px 0;
+    cursor: row-resize;
+  }
+
+  [data-panel-resize-handle]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
 }
 
 @keyframes typing {

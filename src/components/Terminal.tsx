@@ -22,8 +22,9 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
       fontSize: 14,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
       theme: {
-        background: '#000000',
-        foreground: '#ffffff'
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        cursor: 'hsl(var(--foreground))',
       },
       convertEol: true,
       cursorStyle: 'block',
@@ -43,14 +44,21 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
     // Handle window resize
     const handleResize = () => {
       if (!term || !fitAddon) return;
+      console.log('Fitting terminal');
       fitAddon.fit();
     };
 
     window.addEventListener('resize', handleResize);
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (terminalRef.current) {
+      resizeObserver.observe(terminalRef.current);
+    }
+
     handleResize();
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       term.dispose();
     };
   }, []);
@@ -132,21 +140,10 @@ const Terminal: React.FC<TerminalProps> = ({ shellSocket }) => {
   }, [shellSocket]);
 
   return (
-    <div className="relative h-[300px] w-full rounded-lg border border-border/40 bg-background overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border/40">
-        <div className="flex space-x-2">
-          <div className="h-3 w-3 rounded-full bg-red-500"></div>
-          <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
-          <div className="h-3 w-3 rounded-full bg-green-500"></div>
-        </div>
-        <span className="text-xs text-muted-foreground">Terminal</span>
-      </div>
-      <div 
-        ref={terminalRef}
-        className="h-[calc(100%-2.5rem)] w-full"
-        style={{ backgroundColor: '#000000' }}
-      />
-    </div>
+    <div 
+      ref={terminalRef}
+      className="h-full w-full"
+    />
   );
 };
 
