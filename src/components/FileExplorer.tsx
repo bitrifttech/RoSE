@@ -6,6 +6,7 @@ import { Button } from './ui/button';
 import { Search, ChevronRight, ChevronDown, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from './ui/alert';
 import FileContextMenu from './FileContextMenu';
+import FileExplorerContextMenu from './FileExplorerContextMenu';
 import { getFileIcon, sortFiles, matchesFilter, shouldIgnore } from '@/utils/files';
 import { useToast } from './ui/use-toast';
 
@@ -369,14 +370,19 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ onFileSelect }) => {
           />
         </div>
       </div>
-      <div className="flex-1 overflow-auto p-2">
-        {error && (
-          <Alert variant="destructive" className="mb-2">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        {files.map(file => renderFile(file))}
-      </div>
+      <FileExplorerContextMenu
+        onNewFile={() => handleNewFile('')}
+        onNewFolder={() => handleNewFolder('')}
+      >
+        <div className="flex-1 overflow-auto p-2">
+          {error && (
+            <Alert variant="destructive" className="mb-2">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {files.map(file => renderFile(file))}
+        </div>
+      </FileExplorerContextMenu>
     </div>
   );
 };
