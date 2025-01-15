@@ -5,6 +5,8 @@ interface EditorSettings {
   minimap: boolean;
   wordWrap: boolean;
   fontSize: number;
+  tabSize: number;
+  lineNumbers: boolean;
 }
 
 interface EditorSettingsContextType {
@@ -17,6 +19,8 @@ const defaultSettings: EditorSettings = {
   minimap: true,
   wordWrap: true,
   fontSize: 14,
+  tabSize: 2,
+  lineNumbers: true,
 };
 
 const EditorSettingsContext = createContext<EditorSettingsContextType>({

@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useEffect } from "react";
 import Editor, { Monaco } from "@monaco-editor/react";
-import { editor } from 'monaco-editor';
+import * as monaco from 'monaco-editor';
 import { getShortcutConfig } from "@/utils/editor";
 import { useEditorSettings } from "@/contexts/EditorSettings";
 
@@ -19,7 +19,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   path,
   onSave,
 }) => {
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<Monaco | null>(null);
   const { settings } = useEditorSettings();
   const shortcuts = getShortcutConfig();
@@ -51,7 +51,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     );
   }, []);
 
-  const handleEditorDidMount = useCallback((editor: editor.IStandaloneCodeEditor, monaco: Monaco) => {
+  const handleEditorDidMount = useCallback((editor: monaco.editor.IStandaloneCodeEditor, monaco: Monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
 
