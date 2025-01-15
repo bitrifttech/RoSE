@@ -19,7 +19,7 @@ import EditorTabs from "@/components/EditorTabs";
 import { createEditorTab, getLanguageFromPath } from "@/utils/editor";
 import { PreviewWindow } from "@/components/PreviewWindow";
 import { ServerControls } from "@/components/ServerControls";
-import { EditorSettingsPanel } from "@/components/EditorSettingsPanel"; // Update import statement
+import { EditorSettingsPanel } from "@/components/EditorSettingsPanel"; 
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Settings2 } from "lucide-react";
 
@@ -308,32 +308,30 @@ console.log("Hello, World!");`);
   }, [refreshContainers]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-background">
-      <header className="flex-none h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40 z-50">
-        <div className="container h-full flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => navigate('/')}
-              className="hover:bg-accent/50"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowSettings(prev => !prev)}
-              className="hover:bg-accent/50"
-            >
-              <Settings2 className="h-4 w-4" />
-            </Button>
-            <DarkModeToggle />
-          </div>
+    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#1a1f2c] dark:via-[#1f2937] dark:to-[#2d1f2f]">
+      <div className="flex items-center justify-between p-2 border-b border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 backdrop-blur-md dark:bg-black/10">
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate('/')}
+            className="hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10"
+          >
+            <ArrowLeft className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+          </Button>
         </div>
-      </header>
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSettings(prev => !prev)}
+            className="hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10"
+          >
+            <Settings2 className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+          </Button>
+          <DarkModeToggle />
+        </div>
+      </div>
 
       {/* Main Content Area */}
       <PanelGroup direction="vertical" className="flex-1">
@@ -342,76 +340,85 @@ console.log("Hello, World!");`);
           <PanelGroup direction="horizontal" className="h-full">
             {/* Chat Window */}
             <Panel defaultSize={20} minSize={15} maxSize={30}>
-              <div className="h-full border-r border-border/40 bg-sidebar">
-                <div className="h-full p-4">
-                  <div className="h-full rounded-lg border border-border/40 bg-background">
-                    <Chat />
+              <div className="h-full p-4 flex flex-col">
+                <div className="flex-none flex justify-center mb-4">
+                  <div className="rounded-2xl p-2 relative">
+                    <div className="absolute inset-0 bg-gradient-radial from-white via-white/50 to-transparent dark:from-white dark:via-white/30 dark:to-transparent rounded-2xl blur-xl"></div>
+                    <div className="absolute inset-0 bg-gradient-radial from-white via-white/50 to-transparent dark:from-white dark:via-white/30 dark:to-transparent rounded-2xl blur-md"></div>
+                    <img src="/rose_logo1.png" alt="Rose Logo" className="h-44 w-auto object-contain relative z-10" />
                   </div>
+                </div>
+                <div className="flex-1 rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
+                  <Chat />
                 </div>
               </div>
             </Panel>
 
-            <PanelResizeHandle className="w-2 hover:bg-accent/50 transition-colors">
-              <div className="w-px h-full bg-border/40 mx-auto" />
+            <PanelResizeHandle className="w-2 hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10 transition-colors">
+              <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
             </PanelResizeHandle>
 
             {/* File Explorer */}
-            <Panel defaultSize={15} minSize={10} maxSize={25}>
-              <div className="h-full border-r border-border/40">
-                <FileExplorer onFileSelect={handleFileSelect} />
+            <Panel defaultSize={20} minSize={15}>
+              <div className="h-full p-4">
+                <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
+                  <FileExplorer onFileSelect={handleFileSelect} />
+                </div>
               </div>
             </Panel>
 
-            <PanelResizeHandle className="w-2 hover:bg-accent/50 transition-colors">
-              <div className="w-px h-full bg-border/40 mx-auto" />
+            <PanelResizeHandle className="w-2 hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10 transition-colors">
+              <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
             </PanelResizeHandle>
 
             {/* Editor and Preview */}
             <Panel minSize={30}>
-              <div className="h-full">
-                <Tabs defaultValue="editor" className="h-full flex flex-col">
-                  <TabsList className="flex-none grid w-full grid-cols-2">
-                    <TabsTrigger value="editor">Code Editor</TabsTrigger>
-                    <TabsTrigger value="preview">Preview</TabsTrigger>
-                  </TabsList>
+              <div className="h-full p-4">
+                <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
+                  <Tabs defaultValue="editor" className="h-full flex flex-col">
+                    <TabsList className="flex-none grid w-full grid-cols-2">
+                      <TabsTrigger value="editor">Code Editor</TabsTrigger>
+                      <TabsTrigger value="preview">Preview</TabsTrigger>
+                    </TabsList>
 
-                  <TabsContent value="editor" className="flex-1 mt-0">
-                    <div className="h-full p-4">
-                      <div className="h-full flex flex-col">
-                        <EditorTabs
-                          tabs={openTabs}
-                          activeTabId={activeTabId}
-                          onTabSelect={handleTabSelect}
-                          onTabClose={handleTabClose}
-                        />
-                        {activeTabId && (
-                          <div className="flex-1 min-h-0">
-                            <CodeEditor 
-                              value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
-                              onChange={debouncedHandleCodeChange}
-                              language={openTabs.find(t => t.id === activeTabId)?.language}
-                              path={openTabs.find(t => t.id === activeTabId)?.path}
-                              onSave={handleSave}
-                            />
-                          </div>
-                        )}
+                    <TabsContent value="editor" className="flex-1 mt-0">
+                      <div className="h-full p-4">
+                        <div className="h-full flex flex-col">
+                          <EditorTabs
+                            tabs={openTabs}
+                            activeTabId={activeTabId}
+                            onTabSelect={handleTabSelect}
+                            onTabClose={handleTabClose}
+                          />
+                          {activeTabId && (
+                            <div className="flex-1 min-h-0">
+                              <CodeEditor 
+                                value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
+                                onChange={debouncedHandleCodeChange}
+                                language={openTabs.find(t => t.id === activeTabId)?.language}
+                                path={openTabs.find(t => t.id === activeTabId)?.path}
+                                onSave={handleSave}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </TabsContent>
+                    </TabsContent>
 
-                  <TabsContent value="preview" className="flex-1 mt-0">
-                    <div className="h-full p-4">
-                      <PreviewWindow url="http://localhost:8040" />
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                    <TabsContent value="preview" className="flex-1 mt-0">
+                      <div className="h-full p-4">
+                        <PreviewWindow url="http://localhost:8040" />
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
               </div>
             </Panel>
           </PanelGroup>
         </Panel>
 
-        <PanelResizeHandle className="h-2 hover:bg-accent/50 transition-colors">
-          <div className="h-px w-full bg-border/40 mx-auto" />
+        <PanelResizeHandle className="h-2 hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10 transition-colors">
+          <div className="h-px w-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
         </PanelResizeHandle>
 
         {/* Terminal Section */}
@@ -442,15 +449,15 @@ console.log("Hello, World!");`);
 
               {/* Container Info */}
               {showContainerInfo && (
-                <div className="flex-none py-2 mt-2 border-t border-border/40 overflow-auto">
+                <div className="flex-none py-2 mt-2 border-t border-[#b8c7e0]/40 dark:border-white/10 overflow-auto">
                   <ContainerList containers={containers} error={containerError} />
                 </div>
               )}
 
               {/* Terminal */}
-              <div className="flex-1 mt-2 min-h-0 rounded-lg border border-border/40 overflow-hidden">
-                <div className="h-full flex flex-col bg-background">
-                  <div className="flex-none flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-muted/40">
+              <div className="flex-1 mt-2 min-h-0 rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg overflow-hidden">
+                <div className="h-full flex flex-col">
+                  <div className="flex-none flex items-center justify-between px-3 py-1.5 border-b border-[#b8c7e0]/20 dark:border-white/10 bg-white/5 dark:bg-white/5">
                     <div className="flex space-x-1.5">
                       <div className="h-2.5 w-2.5 rounded-full bg-red-500/70 hover:bg-red-500 transition-colors"></div>
                       <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/70 hover:bg-yellow-500 transition-colors"></div>
@@ -470,7 +477,7 @@ console.log("Hello, World!");`);
 
       {/* Settings Panel */}
       {showSettings && (
-        <EditorSettingsPanel onClose={() => setShowSettings(false)} /> // Update component
+        <EditorSettingsPanel onClose={() => setShowSettings(false)} /> 
       )}
     </div>
   );

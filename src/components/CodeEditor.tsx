@@ -55,6 +55,22 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
     editorRef.current = editor;
     monacoRef.current = monaco;
 
+    // Apply dark theme settings
+    monaco.editor.defineTheme('customDark', {
+      base: 'vs-dark',
+      inherit: true,
+      rules: [],
+      colors: {
+        'editor.background': '#15181E',
+        'editor.foreground': '#D4D4D4',
+        'editorLineNumber.foreground': '#6B7280',
+        'editor.lineHighlightBackground': '#2A2E36',
+        'editorGutter.background': '#15181E',
+        'dropdown.background': '#15181E',
+        'input.background': '#15181E',
+      }
+    });
+
     // Add keyboard shortcuts
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       if (settings.formatOnSave) {
@@ -80,19 +96,17 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       }
     });
 
-    // Configure editor
+    // Set up editor options
     editor.updateOptions({
-      minimap: { 
-        enabled: settings.minimap,
-        maxColumn: 80,
-        renderCharacters: false,
-      },
-      fontSize: settings.fontSize,
-      lineNumbers: "on",
+      fontFamily: settings.fontFamily || 'monospace',
+      fontSize: settings.fontSize || 14,
+      lineHeight: settings.lineHeight || 1.5,
+      minimap: { enabled: settings.minimap },
+      wordWrap: settings.wordWrap ? 'on' : 'off',
+      theme: document.documentElement.classList.contains('dark') ? 'customDark' : 'vs',
       roundedSelection: true,
       scrollBeyondLastLine: false,
       automaticLayout: true,
-      wordWrap: settings.wordWrap ? "on" : "off",
       folding: true,
       foldingHighlight: true,
       foldingStrategy: "auto",
@@ -148,6 +162,25 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       },
     });
 
+    // Listen for theme changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          const isDark = document.documentElement.classList.contains('dark');
+          editor.updateOptions({
+            theme: isDark ? 'customDark' : 'vs'
+          });
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
+    // Cleanup observer on unmount
+    return () => observer.disconnect();
   }, [onSave, settings]);
 
   useEffect(() => {
@@ -162,18 +195,23 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
   }, [settings]);
 
   return (
-    <Editor
-      height="100%"
-      defaultLanguage={language}
-      path={path}
-      value={value}
-      onChange={onChange}
-      beforeMount={handleEditorWillMount}
-      onMount={handleEditorDidMount}
-      options={{
-        ...shortcuts
-      }}
-    />
+    <div className="w-full h-full">
+      <Editor
+        height="100%"
+        defaultLanguage={language}
+        language={language}
+        value={value}
+        onChange={onChange}
+        path={path}
+        beforeMount={handleEditorWillMount}
+        onMount={handleEditorDidMount}
+        options={{
+          ...shortcuts,
+          automaticLayout: true,
+          padding: { top: 16 },
+        }}
+      />
+    </div>
   );
 };
 
