@@ -22,6 +22,7 @@ import { ServerControls } from "@/components/ServerControls";
 import { EditorSettingsPanel } from "@/components/EditorSettingsPanel"; 
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Settings2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -305,7 +306,7 @@ console.log("Hello, World!");`);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#1a1f2c] dark:via-[#1f2937] dark:to-[#2d1f2f]">
-      <div className="flex items-center justify-between p-2 border-b border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 backdrop-blur-md dark:bg-black/10">
+      <div className="flex items-center justify-between p-3 border-b border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 backdrop-blur-md dark:bg-black/10">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
@@ -315,8 +316,21 @@ console.log("Hello, World!");`);
           >
             <ArrowLeft className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
           </Button>
+          <div className="flex flex-col">
+            <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">Nova Project</h1>
+            <p className="text-xs text-[#4a5d7e]/70 dark:text-white/50">Development Environment</p>
+          </div>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#d8e3f3]/30 dark:bg-white/5">
+            <div className={cn(
+              "w-2 h-2 rounded-full",
+              isConnected ? "bg-green-400" : "bg-yellow-400"
+            )}></div>
+            <span className="text-sm text-[#4a5d7e] dark:text-white/70">
+              Shell {isConnected ? "Connected" : "Disconnected"}
+            </span>
+          </div>
           <Button
             variant="ghost"
             size="icon"
@@ -415,33 +429,48 @@ console.log("Hello, World!");`);
         <Panel defaultSize={30} minSize={20}>
           <div className="h-full flex flex-col bg-background">
             <div className="flex-1 min-h-0 p-4 flex flex-col">
-              <div className="flex-none flex items-center justify-between py-2">
+              {/* Terminal Controls Bar */}
+              <div className="flex-none flex items-center justify-between py-2 px-1">
+                {/* Left side: Container and Server Controls */}
                 <div className="flex items-center gap-4">
-                  <ContainerControls
-                    isConnected={isConnected}
-                    isContainerRunning={isContainerRunning}
-                    onStartContainer={handleStartContainer}
-                    onStopContainer={handleStopContainer}
-                    onConnect={connectToServer}
-                    onDisconnect={disconnectFromServer}
-                  />
-                  <ServerControls className="ml-2" />
+                  <div className="flex items-center gap-2">
+                    <ContainerControls
+                      isConnected={isConnected}
+                      isContainerRunning={isContainerRunning}
+                      onStartContainer={handleStartContainer}
+                      onStopContainer={handleStopContainer}
+                      onConnect={connectToServer}
+                      onDisconnect={disconnectFromServer}
+                    />
+                    <ConnectionStatus isConnected={isConnected} />
+                  </div>
+                  <div className="h-8 w-px bg-[#b8c7e0]/20 dark:bg-white/10" />
+                  <div className="flex items-center gap-2">
+                    <ServerControls />
+                  </div>
+                </div>
+                
+                {/* Right side: Info Toggle */}
+                <div className="flex items-center gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowContainerInfo(prev => !prev)}
+                    className="flex items-center gap-2"
                   >
-                    {showContainerInfo ? 'Hide Details' : 'Show Details'}
+                    {showContainerInfo ? 'Hide' : 'Show'} Details
                   </Button>
                 </div>
               </div>
 
+              {/* Container Info Panel */}
               {showContainerInfo && (
-                <div className="flex-none py-2 mt-2 border-t border-[#b8c7e0]/40 dark:border-white/10 overflow-auto">
+                <div className="flex-none py-2 mt-2 border-t border-[#b8c7e0]/40 dark:border-white/10">
                   <ContainerList containers={containers} error={containerError} />
                 </div>
               )}
 
+              {/* Terminal Window */}
               <div className="flex-1 mt-2 min-h-0 rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg overflow-hidden">
                 <div className="h-full flex flex-col">
                   <div className="flex-none flex items-center justify-between px-3 py-1.5 border-b border-[#b8c7e0]/20 dark:border-white/10 bg-white/5 dark:bg-white/5">
