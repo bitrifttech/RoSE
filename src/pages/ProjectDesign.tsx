@@ -369,9 +369,14 @@ console.log("Hello, World!");`);
             <Panel defaultSize={20} minSize={15} maxSize={30}>
               <div className="h-full p-4 flex flex-col">
                 <div className="flex-none flex justify-center mb-4">
-                  <div className="rounded-2xl p-2 relative">
-                    <div className="absolute inset-0 bg-gradient-radial from-white via-white/50 to-transparent dark:from-white dark:via-white/30 dark:to-transparent rounded-2xl blur-xl"></div>
-                    <div className="absolute inset-0 bg-gradient-radial from-white via-white/50 to-transparent dark:from-white dark:via-white/30 dark:to-transparent rounded-2xl blur-md"></div>
+                  <div className="w-44 h-44 relative">
+                    {/* Base white glow */}
+                    <div className="absolute inset-0 bg-white dark:bg-white opacity-60 dark:opacity-40 rounded-full blur-2xl"></div>
+                    {/* Middle layer */}
+                    <div className="absolute inset-2 bg-white dark:bg-white opacity-50 dark:opacity-30 rounded-full blur-xl"></div>
+                    {/* Inner glow */}
+                    <div className="absolute inset-4 bg-white dark:bg-white opacity-40 dark:opacity-20 rounded-full blur-lg"></div>
+                    {/* Logo */}
                     <img src="/rose_logo1.png" alt="Rose Logo" className="h-44 w-auto object-contain relative z-10" />
                   </div>
                 </div>
