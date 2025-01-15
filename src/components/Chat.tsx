@@ -3,6 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface Message {
   id: number;
@@ -92,7 +95,35 @@ const Chat = () => {
                       : "bg-background"
                   }`}
                 >
-                  {message.text}
+                  {message.sender === "assistant" ? (
+                    <ReactMarkdown
+                      components={{
+                        code({node, inline, className, children, ...props}) {
+                          const match = /language-(\w+)/.exec(className || '');
+                          return !inline && match ? (
+                            <SyntaxHighlighter
+                              {...props}
+                              style={oneDark}
+                              language={match[1]}
+                              PreTag="div"
+                              className="rounded-md !mt-0"
+                            >
+                              {String(children).replace(/\n$/, '')}
+                            </SyntaxHighlighter>
+                          ) : (
+                            <code {...props} className={className}>
+                              {children}
+                            </code>
+                          );
+                        },
+                      }}
+                      className="prose prose-invert max-w-none [&>*:first-child]:!mt-0 [&>*:last-child]:!mb-0"
+                    >
+                      {message.text}
+                    </ReactMarkdown>
+                  ) : (
+                    message.text
+                  )}
                 </div>
               </div>
             ))}
