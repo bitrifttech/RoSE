@@ -74,43 +74,47 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-muted/50">
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.sender === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
+    <div className="flex flex-col h-full relative">
+      <div className="absolute inset-0 flex flex-col">
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="bg-muted/50 p-4 space-y-4">
+            {messages.map((message) => (
               <div
-                className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                  message.sender === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background"
+                key={message.id}
+                className={`flex ${
+                  message.sender === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {message.text}
+                <div
+                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                    message.sender === "user"
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background"
+                  }`}
+                >
+                  {message.text}
+                </div>
               </div>
+            ))}
+          </div>
+        </ScrollArea>
+        <div className="flex-none border-t border-border/40 bg-background z-10">
+          <form onSubmit={handleSendMessage} className="p-4">
+            <div className="flex gap-2">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1"
+                disabled={isLoading}
+              />
+              <Button type="submit" size="icon" disabled={isLoading}>
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
-          ))}
+          </form>
         </div>
-      </ScrollArea>
-      <form onSubmit={handleSendMessage} className="p-4 border-t border-border/40 bg-background">
-        <div className="flex gap-2">
-          <Input
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1"
-            disabled={isLoading}
-          />
-          <Button type="submit" size="icon" disabled={isLoading}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 };
