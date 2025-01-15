@@ -188,6 +188,26 @@ console.log("Hello, World!");`);
     }
   }, [shellSocket]);
 
+  const sendCommand = useCallback((command: string) => {
+    if (shellSocket && isConnected) {
+      console.log('Sending command:', command);
+      shellSocket.send(JSON.stringify({
+        type: 'input',
+        data: command + '\n'
+      }));
+      toast({
+        title: "Command Sent",
+        description: `Executed: ${command}`,
+      });
+    } else {
+      toast({
+        title: "Not Connected",
+        description: "Please connect to the shell first",
+        variant: "destructive",
+      });
+    }
+  }, [shellSocket, isConnected, toast]);
+
   const handleFileSelect = async (content: string, path: string) => {
     console.log("File selected, content:", content);
     
@@ -447,6 +467,27 @@ console.log("Hello, World!");`);
                   <div className="h-8 w-px bg-[#b8c7e0]/20 dark:bg-white/10" />
                   <div className="flex items-center gap-2">
                     <ServerControls />
+                  </div>
+                  <div className="h-8 w-px bg-[#b8c7e0]/20 dark:bg-white/10" />
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => sendCommand('ls -la')}
+                      disabled={!isConnected}
+                      className="text-sm"
+                    >
+                      List Files
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => sendCommand('pwd')}
+                      disabled={!isConnected}
+                      className="text-sm"
+                    >
+                      Show Path
+                    </Button>
                   </div>
                 </div>
                 
