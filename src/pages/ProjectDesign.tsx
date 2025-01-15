@@ -40,7 +40,7 @@ console.log("Hello, World!");`);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [shellSocket, setShellSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [containers, setContainers] = useState<Array<{ id: string }>>([]);
+  const [containers, setContainers] = useState<Container[]>([]);
   const [containerId, setContainerId] = useState<string | null>(null);
   const [containerError, setContainerError] = useState<string>();
   const [isContainerRunning, setIsContainerRunning] = useState(false);
@@ -58,12 +58,17 @@ console.log("Hello, World!");`);
       if (!response.ok) {
         throw new Error('Failed to fetch containers');
       }
-      const containers = await response.json();
-      setContainers(containers);
+      const containersData = await response.json();
+      const typedContainers: Container[] = containersData.map((container: any) => ({
+        id: container.id,
+        name: container.name || 'Unnamed',
+        status: container.status || 'Unknown',
+        ports: container.ports || []
+      }));
+      setContainers(typedContainers);
       setContainerError(undefined);
       
-      // Update container running state based on if there are any containers
-      setIsContainerRunning(containers.length > 0);
+      setIsContainerRunning(typedContainers.length > 0);
     } catch (err) {
       setContainerError(err instanceof Error ? err.message : 'Failed to fetch containers');
       setContainers([]);
@@ -99,7 +104,6 @@ console.log("Hello, World!");`);
   }, [toast]);
 
   const handleStopContainer = useCallback(async () => {
-    // If there's a container running, use the first one in the list
     const containerToStop = containers[0];
     if (!containerToStop) {
       toast({
@@ -125,7 +129,6 @@ console.log("Hello, World!");`);
         title: "Container stopped",
         description: `Container ID: ${containerToStop.id.substring(0, 12)}`,
       });
-      // Only clear containerId if it matches the one we just stopped
       if (containerId === containerToStop.id) {
         setContainerId(null);
       }
@@ -187,14 +190,12 @@ console.log("Hello, World!");`);
   const handleFileSelect = async (content: string, path: string) => {
     console.log("File selected, content:", content);
     
-    // Check if file is already open
     const existingTab = openTabs.find(tab => tab.path === path);
     if (existingTab) {
       setActiveTabId(existingTab.id);
       return;
     }
 
-    // Create new tab
     const newTab = createEditorTab(path, content);
     setOpenTabs(prev => [...prev, newTab]);
     setActiveTabId(newTab.id);
@@ -203,7 +204,6 @@ console.log("Hello, World!");`);
   const handleTabClose = (tabId: string) => {
     const tab = openTabs.find(t => t.id === tabId);
     if (tab?.isDirty) {
-      // TODO: Show confirmation dialog
       if (!confirm('You have unsaved changes. Close anyway?')) {
         return;
       }
@@ -237,7 +237,6 @@ console.log("Hello, World!");`);
         await updateFile(activeTab.path, newCode);
         console.log('File saved successfully');
         
-        // Mark tab as clean after successful save
         setOpenTabs(prev => prev.map(tab => 
           tab.id === activeTabId
             ? { ...tab, isDirty: false }
@@ -259,7 +258,6 @@ console.log("Hello, World!");`);
     }
   }, [activeTabId, openTabs]);
 
-  // Debounce the save operation
   const debouncedHandleCodeChange = useCallback(
     debounce(async (value: string) => {
       handleCodeChange(value);
@@ -291,7 +289,6 @@ console.log("Hello, World!");`);
     }
   }, [activeTabId, openTabs]);
 
-  // Cleanup WebSocket connection when component unmounts
   useEffect(() => {
     return () => {
       if (shellSocket) {
@@ -300,7 +297,6 @@ console.log("Hello, World!");`);
     };
   }, [shellSocket]);
 
-  // Refresh containers periodically
   useEffect(() => {
     refreshContainers();
     const interval = setInterval(refreshContainers, 5000);
@@ -333,12 +329,9 @@ console.log("Hello, World!");`);
         </div>
       </div>
 
-      {/* Main Content Area */}
       <PanelGroup direction="vertical" className="flex-1">
-        {/* Top Section */}
         <Panel defaultSize={70} minSize={30}>
           <PanelGroup direction="horizontal" className="h-full">
-            {/* Chat Window */}
             <Panel defaultSize={20} minSize={15} maxSize={30}>
               <div className="h-full p-4 flex flex-col">
                 <div className="flex-none flex justify-center mb-4">
@@ -358,7 +351,6 @@ console.log("Hello, World!");`);
               <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
             </PanelResizeHandle>
 
-            {/* File Explorer */}
             <Panel defaultSize={20} minSize={15}>
               <div className="h-full p-4">
                 <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
@@ -371,7 +363,6 @@ console.log("Hello, World!");`);
               <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
             </PanelResizeHandle>
 
-            {/* Editor and Preview */}
             <Panel minSize={30}>
               <div className="h-full p-4">
                 <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
@@ -421,12 +412,9 @@ console.log("Hello, World!");`);
           <div className="h-px w-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
         </PanelResizeHandle>
 
-        {/* Terminal Section */}
         <Panel defaultSize={30} minSize={20}>
           <div className="h-full flex flex-col bg-background">
-            {/* Terminal Container with consistent padding */}
             <div className="flex-1 min-h-0 p-4 flex flex-col">
-              {/* Terminal Controls */}
               <div className="flex-none flex items-center justify-between py-2">
                 <div className="flex items-center gap-4">
                   <ContainerControls
@@ -447,14 +435,12 @@ console.log("Hello, World!");`);
                 </div>
               </div>
 
-              {/* Container Info */}
               {showContainerInfo && (
                 <div className="flex-none py-2 mt-2 border-t border-[#b8c7e0]/40 dark:border-white/10 overflow-auto">
                   <ContainerList containers={containers} error={containerError} />
                 </div>
               )}
 
-              {/* Terminal */}
               <div className="flex-1 mt-2 min-h-0 rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg overflow-hidden">
                 <div className="h-full flex flex-col">
                   <div className="flex-none flex items-center justify-between px-3 py-1.5 border-b border-[#b8c7e0]/20 dark:border-white/10 bg-white/5 dark:bg-white/5">
@@ -475,7 +461,6 @@ console.log("Hello, World!");`);
         </Panel>
       </PanelGroup>
 
-      {/* Settings Panel */}
       {showSettings && (
         <EditorSettingsPanel onClose={() => setShowSettings(false)} /> 
       )}

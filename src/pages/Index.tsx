@@ -1,120 +1,52 @@
-import { useState } from "react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarProvider,
-  SidebarTrigger,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  useSidebar,
-} from "@/components/ui/sidebar";
-import { Home, Settings, Plus, Layout } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ProjectCard } from "@/components/ProjectCard";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import { DarkModeToggle } from "@/components/DarkModeToggle";
+import { Plus } from "lucide-react";
 
-const SidebarTitle = () => {
-  const { state } = useSidebar();
-  return (
-    <h2 className="text-xl font-semibold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent transition-all duration-200">
-      {state === "collapsed" ? "N" : "Nova"}
-    </h2>
-  );
-};
+const projects = [
+  {
+    id: 1,
+    name: "Project One",
+    description: "A sample project description",
+    lastModified: new Date().toISOString(),
+  },
+  // Add more sample projects as needed
+];
 
 const Index = () => {
-  const { toast } = useToast();
-  const [projects, setProjects] = useState([
-    { id: 1, name: "E-commerce Redesign", description: "Modern UI refresh for online store", lastModified: "2024-03-20" },
-    { id: 2, name: "Dashboard UI", description: "Analytics dashboard interface", lastModified: "2024-03-19" },
-  ]);
-
-  const handleNewProject = () => {
-    toast({
-      title: "Coming Soon",
-      description: "New project creation will be available in the next update.",
-    });
-  };
+  const navigate = useNavigate();
 
   return (
-    <SidebarProvider defaultOpen={true}>
-      <div className="flex min-h-screen w-full bg-background">
-        <Sidebar className="border-r border-r-sidebar-border/40 shadow-lg shadow-sidebar-border/5" variant="sidebar" collapsible="icon">
-          <SidebarHeader className="flex items-center justify-between border-b border-b-sidebar-border/40 px-6 py-4">
-            <SidebarTitle />
-            <SidebarTrigger />
-          </SidebarHeader>
-          <SidebarContent className="px-2 py-4">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  className="w-full justify-start gap-3 px-4 py-2 hover:bg-accent/50"
-                  tooltip="Home"
-                >
-                  <Home className="h-4 w-4" />
-                  <span className="font-medium">Home</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  className="w-full justify-start gap-3 px-4 py-2 hover:bg-accent/50"
-                  tooltip="Projects"
-                >
-                  <Layout className="h-4 w-4" />
-                  <span className="font-medium">Projects</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton 
-                  className="w-full justify-start gap-3 px-4 py-2 hover:bg-accent/50"
-                  tooltip="Settings"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span className="font-medium">Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarContent>
-        </Sidebar>
+    <div className="min-h-screen bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#1a1f2c] dark:via-[#1f2937] dark:to-[#2d1f2f]">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+            My Projects
+          </h1>
+          <Button
+            onClick={() => navigate("/project/new")}
+            className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+          >
+            <Plus className="w-4 h-4" />
+            New Project
+          </Button>
+        </div>
 
-        <main className="flex-1 overflow-auto">
-          <header className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
-            <div className="container h-full flex items-center justify-end">
-              <DarkModeToggle />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects.map((project, index) => (
+            <div
+              key={project.id}
+              className="animate-fadeIn"
+              style={{
+                animationDelay: `${index * 150}ms`
+              }}
+            >
+              <ProjectCard project={project} />
             </div>
-          </header>
-          <div className="container max-w-7xl py-8 mt-16">
-            <div className="mb-8 flex items-center justify-between">
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-                  Projects
-                </h1>
-                <p className="text-lg text-muted-foreground">
-                  Manage and create UX design projects
-                </p>
-              </div>
-              <Button 
-                onClick={handleNewProject} 
-                size="lg" 
-                className="gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-shadow"
-              >
-                <Plus className="h-4 w-4" />
-                New Project
-              </Button>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          </div>
-        </main>
+          ))}
+        </div>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 
