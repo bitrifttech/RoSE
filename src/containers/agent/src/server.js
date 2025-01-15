@@ -7,6 +7,11 @@ const treeKill = require('tree-kill');
 const WebSocket = require('ws');
 const os = require('os');
 const pty = require('node-pty-prebuilt-multiarch');
+const dotenv = require('dotenv');
+const openaiRoutes = require('./openai-routes');
+
+// Load environment variables
+dotenv.config();
 
 // API Routes Documentation
 const apiRoutes = {
@@ -392,7 +397,7 @@ function createApp() {
         }
         
         res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Accept');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
         
         // Handle preflight requests
         if (req.method === 'OPTIONS') {
@@ -400,6 +405,9 @@ function createApp() {
         }
         next();
     });
+
+    // Mount OpenAI-compatible routes
+    app.use('/', openaiRoutes);
 
     // Constants
     const APP_DIR = path.join(__dirname, '../app');
