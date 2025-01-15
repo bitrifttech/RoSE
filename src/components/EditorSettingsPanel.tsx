@@ -3,43 +3,32 @@ import { useEditorSettings } from '@/contexts/EditorSettings';
 import { Switch } from './ui/switch';
 import { Slider } from './ui/slider';
 import { Label } from './ui/label';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from './ui/sheet';
+import { X } from 'lucide-react';
 import { Button } from './ui/button';
-import { Settings } from 'lucide-react';
 
-export function EditorSettingsPanel() {
+interface EditorSettingsPanelProps {
+  onClose: () => void;
+}
+
+export const EditorSettingsPanel: React.FC<EditorSettingsPanelProps> = ({ onClose }) => {
   const { settings, updateSettings } = useEditorSettings();
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Settings className="h-4 w-4" />
+    <div className="fixed right-0 top-16 bottom-0 w-80 bg-background border-l border-border/40 p-4 shadow-lg z-50">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold">Editor Settings</h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="hover:bg-accent/50"
+        >
+          <X className="h-4 w-4" />
         </Button>
-      </SheetTrigger>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>Editor Settings</SheetTitle>
-          <SheetDescription>
-            Customize your coding experience
-          </SheetDescription>
-        </SheetHeader>
-        <div className="space-y-6 py-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="format-on-save">Format on Save</Label>
-            <Switch
-              id="format-on-save"
-              checked={settings.formatOnSave}
-              onCheckedChange={(checked) => updateSettings({ formatOnSave: checked })}
-            />
-          </div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label htmlFor="minimap">Show Minimap</Label>
             <Switch
@@ -48,38 +37,41 @@ export function EditorSettingsPanel() {
               onCheckedChange={(checked) => updateSettings({ minimap: checked })}
             />
           </div>
+
           <div className="flex items-center justify-between">
-            <Label htmlFor="word-wrap">Word Wrap</Label>
+            <Label htmlFor="wordWrap">Word Wrap</Label>
             <Switch
-              id="word-wrap"
+              id="wordWrap"
               checked={settings.wordWrap}
               onCheckedChange={(checked) => updateSettings({ wordWrap: checked })}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Font Size</Label>
-            <div className="flex items-center gap-4">
-              <Slider
-                value={[settings.fontSize]}
-                onValueChange={([value]) => updateSettings({ fontSize: value })}
-                min={10}
-                max={24}
-                step={1}
-              />
-              <span className="w-12 text-sm">{settings.fontSize}px</span>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Keyboard Shortcuts</h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <p>Format Document: Cmd/Ctrl + Shift + F</p>
-              <p>Jump to Definition: Cmd/Ctrl + F12</p>
-              <p>Find References: Alt + F12</p>
-              <p>Save: Cmd/Ctrl + S</p>
-            </div>
+
+          <div className="flex items-center justify-between">
+            <Label htmlFor="formatOnSave">Format on Save</Label>
+            <Switch
+              id="formatOnSave"
+              checked={settings.formatOnSave}
+              onCheckedChange={(checked) => updateSettings({ formatOnSave: checked })}
+            />
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+
+        <div className="space-y-2">
+          <Label>Font Size</Label>
+          <div className="flex items-center gap-4">
+            <Slider
+              value={[settings.fontSize]}
+              onValueChange={([value]) => updateSettings({ fontSize: value })}
+              min={8}
+              max={32}
+              step={1}
+              className="flex-1"
+            />
+            <span className="w-8 text-sm">{settings.fontSize}</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-}
+};

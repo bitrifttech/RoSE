@@ -19,7 +19,9 @@ import EditorTabs from "@/components/EditorTabs";
 import { createEditorTab, getLanguageFromPath } from "@/utils/editor";
 import { PreviewWindow } from "@/components/PreviewWindow";
 import { ServerControls } from "@/components/ServerControls";
-import { EditorSettingsPanel } from "@/components/EditorSettingsPanel";
+import { EditorSettingsPanel } from "@/components/EditorSettingsPanel"; // Update import statement
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Settings2 } from "lucide-react";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -43,6 +45,7 @@ console.log("Hello, World!");`);
   const [containerError, setContainerError] = useState<string>();
   const [isContainerRunning, setIsContainerRunning] = useState(false);
   const [showContainerInfo, setShowContainerInfo] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const refreshContainers = useCallback(async () => {
     try {
@@ -305,8 +308,8 @@ console.log("Hello, World!");`);
   }, [refreshContainers]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="fixed top-0 right-0 left-0 h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40 z-50">
+    <div className="h-screen w-screen flex flex-col bg-background">
+      <header className="flex-none h-16 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40 z-50">
         <div className="container h-full flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button 
@@ -319,103 +322,156 @@ console.log("Hello, World!");`);
             </Button>
           </div>
           <div className="flex items-center space-x-4">
-            <EditorSettingsPanel />
-            <ServerControls />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSettings(prev => !prev)}
+              className="hover:bg-accent/50"
+            >
+              <Settings2 className="h-4 w-4" />
+            </Button>
             <DarkModeToggle />
           </div>
         </div>
       </header>
 
-      <div className="flex flex-col h-[calc(100vh-4rem)] mt-16">
-        <div className="flex flex-1 min-h-0 pb-4">
-          {/* Chat Window */}
-          <div className="w-[400px] border-r border-border/40 p-4 bg-sidebar">
-            <div className="h-full rounded-lg border border-border/40 bg-background">
-              <Chat />
-            </div>
-          </div>
-
-          {/* Code Editor and Preview */}
-          <div className="flex-1 p-4">
-            <Tabs defaultValue="editor" className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="editor">Code Editor</TabsTrigger>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-              </TabsList>
-              <TabsContent value="editor" className="flex-1 min-h-0">
-                <div className="h-full rounded-lg border border-border/40 bg-background p-4">
-                  <div className="flex flex-row h-full">
-                    <FileExplorer onFileSelect={handleFileSelect} />
-                    <div className="flex-1 h-full flex flex-col min-h-0">
-                      <EditorTabs
-                        tabs={openTabs}
-                        activeTabId={activeTabId}
-                        onTabSelect={handleTabSelect}
-                        onTabClose={handleTabClose}
-                      />
-                      {activeTabId && (
-                        <div className="flex-1 min-h-0">
-                          <CodeEditor 
-                            value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
-                            onChange={debouncedHandleCodeChange}
-                            language={openTabs.find(t => t.id === activeTabId)?.language}
-                            path={openTabs.find(t => t.id === activeTabId)?.path}
-                            onSave={handleSave}
-                          />
-                        </div>
-                      )}
-                    </div>
+      {/* Main Content Area */}
+      <PanelGroup direction="vertical" className="flex-1">
+        {/* Top Section */}
+        <Panel defaultSize={70} minSize={30}>
+          <PanelGroup direction="horizontal" className="h-full">
+            {/* Chat Window */}
+            <Panel defaultSize={20} minSize={15} maxSize={30}>
+              <div className="h-full border-r border-border/40 bg-sidebar">
+                <div className="h-full p-4">
+                  <div className="h-full rounded-lg border border-border/40 bg-background">
+                    <Chat />
                   </div>
                 </div>
-              </TabsContent>
-              <TabsContent value="preview" className="flex-1 min-h-0">
-                <div className="h-full rounded-lg border border-border/40 bg-background p-4">
-                  <h2 className="text-lg font-semibold mb-4">Preview</h2>
-                  <PreviewWindow url="http://localhost:8040" />
+              </div>
+            </Panel>
+
+            <PanelResizeHandle className="w-2 hover:bg-accent/50 transition-colors">
+              <div className="w-px h-full bg-border/40 mx-auto" />
+            </PanelResizeHandle>
+
+            {/* File Explorer */}
+            <Panel defaultSize={15} minSize={10} maxSize={25}>
+              <div className="h-full border-r border-border/40">
+                <FileExplorer onFileSelect={handleFileSelect} />
+              </div>
+            </Panel>
+
+            <PanelResizeHandle className="w-2 hover:bg-accent/50 transition-colors">
+              <div className="w-px h-full bg-border/40 mx-auto" />
+            </PanelResizeHandle>
+
+            {/* Editor and Preview */}
+            <Panel minSize={30}>
+              <div className="h-full">
+                <Tabs defaultValue="editor" className="h-full flex flex-col">
+                  <TabsList className="flex-none grid w-full grid-cols-2">
+                    <TabsTrigger value="editor">Code Editor</TabsTrigger>
+                    <TabsTrigger value="preview">Preview</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="editor" className="flex-1 mt-0">
+                    <div className="h-full p-4">
+                      <div className="h-full flex flex-col">
+                        <EditorTabs
+                          tabs={openTabs}
+                          activeTabId={activeTabId}
+                          onTabSelect={handleTabSelect}
+                          onTabClose={handleTabClose}
+                        />
+                        {activeTabId && (
+                          <div className="flex-1 min-h-0">
+                            <CodeEditor 
+                              value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
+                              onChange={debouncedHandleCodeChange}
+                              language={openTabs.find(t => t.id === activeTabId)?.language}
+                              path={openTabs.find(t => t.id === activeTabId)?.path}
+                              onSave={handleSave}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="preview" className="flex-1 mt-0">
+                    <div className="h-full p-4">
+                      <PreviewWindow url="http://localhost:8040" />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </Panel>
+          </PanelGroup>
+        </Panel>
+
+        <PanelResizeHandle className="h-2 hover:bg-accent/50 transition-colors">
+          <div className="h-px w-full bg-border/40 mx-auto" />
+        </PanelResizeHandle>
+
+        {/* Terminal Section */}
+        <Panel defaultSize={30} minSize={20}>
+          <div className="h-full flex flex-col bg-background">
+            {/* Terminal Container with consistent padding */}
+            <div className="flex-1 min-h-0 p-4 flex flex-col">
+              {/* Terminal Controls */}
+              <div className="flex-none flex items-center justify-between py-2">
+                <div className="flex items-center gap-4">
+                  <ContainerControls
+                    isConnected={isConnected}
+                    isContainerRunning={isContainerRunning}
+                    onStartContainer={handleStartContainer}
+                    onStopContainer={handleStopContainer}
+                    onConnect={connectToServer}
+                    onDisconnect={disconnectFromServer}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowContainerInfo(prev => !prev)}
+                  >
+                    {showContainerInfo ? 'Hide Details' : 'Show Details'}
+                  </Button>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
+              </div>
 
-        {/* Terminal Section with Controls */}
-        <div className="border-t border-border/40">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <ContainerControls
-                  isConnected={isConnected}
-                  isContainerRunning={isContainerRunning}
-                  onStartContainer={handleStartContainer}
-                  onStopContainer={handleStopContainer}
-                  onConnect={connectToServer}
-                  onDisconnect={disconnectFromServer}
-                />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowContainerInfo(prev => !prev)}
-                  className="gap-2"
-                >
-                  {showContainerInfo ? 'Hide Details' : 'Show Details'}
-                </Button>
+              {/* Container Info */}
+              {showContainerInfo && (
+                <div className="flex-none py-2 mt-2 border-t border-border/40 overflow-auto">
+                  <ContainerList containers={containers} error={containerError} />
+                </div>
+              )}
+
+              {/* Terminal */}
+              <div className="flex-1 mt-2 min-h-0 rounded-lg border border-border/40 overflow-hidden">
+                <div className="h-full flex flex-col bg-background">
+                  <div className="flex-none flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-muted/40">
+                    <div className="flex space-x-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-500/70 hover:bg-red-500 transition-colors"></div>
+                      <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/70 hover:bg-yellow-500 transition-colors"></div>
+                      <div className="h-2.5 w-2.5 rounded-full bg-green-500/70 hover:bg-green-500 transition-colors"></div>
+                    </div>
+                    <span className="text-[10px] font-medium text-muted-foreground">Terminal</span>
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <Terminal shellSocket={shellSocket} />
+                  </div>
+                </div>
               </div>
             </div>
-            
-            {/* Collapsible Container Info */}
-            {showContainerInfo && (
-              <div className="mb-4">
-                <ContainerList containers={containers} error={containerError} />
-              </div>
-            )}
-
-            {/* Terminal */}
-            <div className="rounded-lg border border-border/40 bg-background">
-              <Terminal shellSocket={shellSocket} />
-            </div>
           </div>
-        </div>
-      </div>
+        </Panel>
+      </PanelGroup>
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <EditorSettingsPanel onClose={() => setShowSettings(false)} /> // Update component
+      )}
     </div>
   );
 };
