@@ -425,6 +425,7 @@ console.log("Hello, World!");`);
                     onConnect={connectToServer}
                     onDisconnect={disconnectFromServer}
                   />
+                  <ServerControls className="ml-2" />
                   <Button
                     variant="ghost"
                     size="sm"
