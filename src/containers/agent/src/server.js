@@ -6,7 +6,7 @@ const { spawn, exec } = require('child_process');
 const treeKill = require('tree-kill');
 const WebSocket = require('ws');
 const os = require('os');
-const pty = require('node-pty');
+const pty = require('node-pty-prebuilt-multiarch');
 
 // API Routes Documentation
 const apiRoutes = {
@@ -291,36 +291,28 @@ const apiRoutes = {
             }
         }
     },
-    '/shell': {
-        get: {
-            summary: 'Interactive Shell WebSocket',
-            description: 'Connect to this endpoint with a WebSocket client to get an interactive shell session',
-            responses: {
-                '101': {
-                    description: 'Switching Protocols to WebSocket'
-                }
-            }
-        }
-    },
     '/move': {
         post: {
             summary: 'Move file or directory',
             description: 'Moves a file or directory to a new location',
             requestBody: {
                 required: true,
-                content: 'application/json',
-                schema: {
-                    type: 'object',
-                    properties: {
-                        sourcePath: {
-                            type: 'string',
-                            required: true,
-                            description: 'Source file or directory path relative to app directory'
-                        },
-                        targetPath: {
-                            type: 'string',
-                            required: true,
-                            description: 'Target file or directory path relative to app directory'
+                content: {
+                    'application/json': {
+                        schema: {
+                            type: 'object',
+                            properties: {
+                                sourcePath: {
+                                    type: 'string',
+                                    required: true,
+                                    description: 'Source file or directory path relative to app directory'
+                                },
+                                targetPath: {
+                                    type: 'string',
+                                    required: true,
+                                    description: 'Target path relative to app directory'
+                                }
+                            }
                         }
                     }
                 }
@@ -333,7 +325,7 @@ const apiRoutes = {
                     description: 'Access denied: Path outside app directory'
                 },
                 '404': {
-                    description: 'Source file or directory not found'
+                    description: 'Source or target not found'
                 },
                 '500': {
                     description: 'Server error'
