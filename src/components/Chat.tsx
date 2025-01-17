@@ -1,12 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { ThinkingAnimation } from "./ThinkingAnimation";
+import { AutoFocusInput } from "@/components/ui/auto-focus-input";
 
 interface Message {
   id: number;
@@ -18,12 +17,34 @@ const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages]);
+
+  const focusInput = () => {
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, 0);
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now(),
       text: inputValue,
@@ -50,111 +71,120 @@ const Chat = () => {
       }
 
       const data = await response.json();
-      
-      // Extract text from result, handling both string and object responses
-      const resultText = typeof data.result === 'string' 
-        ? data.result 
-        : data.result.text || JSON.stringify(data.result);
-      
-      // Add assistant message
+      console.log('Received response:', data);
+
+      let messageText = '';
+      if (typeof data === 'string') {
+        messageText = data;
+      } else if (data.result && typeof data.result === 'object') {
+        if (data.result.text) {
+          messageText = data.result.text;
+        } else {
+          messageText = JSON.stringify(data.result, null, 2);
+        }
+      } else if (data.output && typeof data.output === 'string') {
+        messageText = data.output;
+      } else if (data.text && typeof data.text === 'string') {
+        messageText = data.text;
+      } else {
+        messageText = JSON.stringify(data, null, 2);
+      }
+
       const assistantMessage: Message = {
         id: Date.now(),
-        text: resultText,
+        text: messageText,
         sender: "assistant",
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error:', error);
-      // Add error message
       const errorMessage: Message = {
         id: Date.now(),
-        text: "Sorry, there was an error processing your message.",
+        text: "Sorry, I encountered an error processing your request.",
         sender: "assistant",
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      focusInput();
     }
   };
 
+  useEffect(() => {
+    focusInput();
+  }, []);
+
   return (
-    <div className="flex flex-col h-full relative">
-      <div className="absolute inset-0 flex flex-col">
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="bg-muted/50 p-4 space-y-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.sender === "user" ? "justify-end" : "justify-start"
-                }`}
+    <div className="flex flex-col h-full">
+      <div 
+        ref={chatContainerRef}
+        className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
+        style={{ maxHeight: 'calc(100vh - 200px)' }}
+      >
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${
+              message.sender === "user" ? "justify-end" : "justify-start"
+            }`}
+          >
+            <div
+              className={`max-w-[80%] rounded-lg p-3 ${
+                message.sender === "user"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted"
+              }`}
+            >
+              <ReactMarkdown
+                components={{
+                  code({node, inline, className, children, ...props}) {
+                    const match = /language-(\w+)/.exec(className || '')
+                    return !inline && match ? (
+                      <SyntaxHighlighter
+                        {...props}
+                        style={oneDark}
+                        language={match[1]}
+                        PreTag="div"
+                      >
+                        {String(children).replace(/\n$/, '')}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code {...props} className={className}>
+                        {children}
+                      </code>
+                    )
+                  }
+                }}
               >
-                <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                    message.sender === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background"
-                  }`}
-                >
-                  {message.sender === "assistant" ? (
-                    <ReactMarkdown
-                      components={{
-                        code({node, inline, className, children, ...props}) {
-                          const match = /language-(\w+)/.exec(className || '');
-                          return !inline && match ? (
-                            <SyntaxHighlighter
-                              {...props}
-                              style={oneDark}
-                              language={match[1]}
-                              PreTag="div"
-                              className="rounded-md !mt-0"
-                            >
-                              {String(children).replace(/\n$/, '')}
-                            </SyntaxHighlighter>
-                          ) : (
-                            <code {...props} className={className}>
-                              {children}
-                            </code>
-                          );
-                        },
-                      }}
-                      className="prose prose-invert max-w-none [&>*:first-child]:!mt-0 [&>*:last-child]:!mb-0"
-                    >
-                      {message.text}
-                    </ReactMarkdown>
-                  ) : (
-                    message.text
-                  )}
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg p-4 bg-muted">
-                  <ThinkingAnimation />
-                </div>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
-        <div className="flex-none border-t border-border/40 bg-background z-10">
-          <form onSubmit={handleSendMessage} className="p-4">
-            <div className="flex gap-2">
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1"
-                disabled={isLoading}
-              />
-              <Button type="submit" size="icon" disabled={isLoading}>
-                <Send className="h-4 w-4" />
-              </Button>
+                {message.text}
+              </ReactMarkdown>
             </div>
-          </form>
-        </div>
+          </div>
+        ))}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-lg p-4 bg-muted">
+              <ThinkingAnimation />
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
+
+      <form onSubmit={handleSendMessage} className="flex-none p-4 flex gap-2 bg-background border-t">
+        <AutoFocusInput
+          ref={inputRef}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          placeholder="Type your message..."
+          disabled={isLoading}
+          className="flex-1"
+        />
+        <Button type="submit" disabled={isLoading || !inputValue.trim()}>
+          <Send className="h-4 w-4" />
+        </Button>
+      </form>
     </div>
   );
 };

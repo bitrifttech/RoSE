@@ -367,8 +367,8 @@ console.log("Hello, World!");`);
         <Panel defaultSize={70} minSize={30}>
           <PanelGroup direction="horizontal" className="h-full">
             <Panel defaultSize={25} minSize={12} maxSize={50}>
-              <div className="h-full p-4 flex flex-col">
-                <div className="flex-none flex justify-center mb-4">
+              <div className="h-full flex flex-col">
+                <div className="flex-none flex justify-center p-4 mb-4">
                   <div className="w-44 h-44 relative">
                     {/* Base white glow */}
                     <div className="absolute inset-0 bg-white dark:bg-white opacity-60 dark:opacity-40 rounded-full blur-2xl"></div>
@@ -380,8 +380,10 @@ console.log("Hello, World!");`);
                     <img src="/rose_logo1.png" alt="Rose Logo" className="h-44 w-auto object-contain relative z-10" />
                   </div>
                 </div>
-                <div className="flex-1 rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
-                  <Chat />
+                <div className="flex-1 min-h-0 px-4 pb-4">
+                  <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
+                    <Chat />
+                  </div>
                 </div>
               </div>
             </Panel>
