@@ -6,6 +6,7 @@ import { Send } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { ThinkingAnimation } from "./ThinkingAnimation";
 
 interface Message {
   id: number;
@@ -128,6 +129,13 @@ const Chat = () => {
                 </div>
               </div>
             ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg p-4 bg-muted">
+                  <ThinkingAnimation />
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
         <div className="flex-none border-t border-border/40 bg-background z-10">
