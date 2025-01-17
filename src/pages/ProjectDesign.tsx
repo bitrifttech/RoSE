@@ -366,7 +366,7 @@ console.log("Hello, World!");`);
       <PanelGroup direction="vertical" className="flex-1">
         <Panel defaultSize={70} minSize={30}>
           <PanelGroup direction="horizontal" className="h-full">
-            <Panel defaultSize={20} minSize={15} maxSize={30}>
+            <Panel defaultSize={15} minSize={12} maxSize={25}>
               <div className="h-full p-4 flex flex-col">
                 <div className="flex-none flex justify-center mb-4">
                   <div className="w-44 h-44 relative">
