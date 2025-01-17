@@ -34,43 +34,44 @@ const Chat = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8030/v1/chat/completions', {
+      const response = await fetch('http://localhost:8100/run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [{ role: "user", content: inputValue }],
-          temperature: 0.7
+          input: inputValue
         }),
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        const assistantMessage: Message = {
-          id: Date.now() + 1,
-          text: data.choices[0].message.content,
-          sender: "assistant",
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
-      } else {
-        // Handle error
-        const assistantMessage: Message = {
-          id: Date.now() + 1,
-          text: `Error: ${data.error?.message || 'Failed to get response'}`,
-          sender: "assistant",
-        };
-        setMessages((prev) => [...prev, assistantMessage]);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
       }
-    } catch (error) {
-      // Handle error
+
+      const data = await response.json();
+      
+      // Extract text from result, handling both string and object responses
+      const resultText = typeof data.result === 'string' 
+        ? data.result 
+        : data.result.text || JSON.stringify(data.result);
+      
+      // Add assistant message
       const assistantMessage: Message = {
-        id: Date.now() + 1,
-        text: `Error: ${error.message || 'Failed to connect to the server'}`,
+        id: Date.now(),
+        text: resultText,
         sender: "assistant",
       };
+
       setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error:', error);
+      // Add error message
+      const errorMessage: Message = {
+        id: Date.now(),
+        text: "Sorry, there was an error processing your message.",
+        sender: "assistant",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
