@@ -366,7 +366,7 @@ console.log("Hello, World!");`);
       <PanelGroup direction="vertical" className="flex-1">
         <Panel defaultSize={70} minSize={30}>
           <PanelGroup direction="horizontal" className="h-full">
-            <Panel defaultSize={15} minSize={12} maxSize={25}>
+            <Panel defaultSize={25} minSize={12} maxSize={50}>
               <div className="h-full p-4 flex flex-col">
                 <div className="flex-none flex justify-center mb-4">
                   <div className="w-44 h-44 relative">
@@ -390,11 +390,9 @@ console.log("Hello, World!");`);
               <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
             </PanelResizeHandle>
 
-            <Panel defaultSize={20} minSize={15}>
+            <Panel defaultSize={12} minSize={12}>
               <div className="h-full p-4">
-                <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
-                  <FileExplorer onFileSelect={handleFileSelect} />
-                </div>
+                <FileExplorer onFileSelect={handleFileSelect} />
               </div>
             </Panel>
 
@@ -402,7 +400,7 @@ console.log("Hello, World!");`);
               <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
             </PanelResizeHandle>
 
-            <Panel minSize={30}>
+            <Panel defaultSize={60} minSize={30}>
               <div className="h-full p-4">
                 <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
                   <Tabs defaultValue="editor" className="h-full flex flex-col">
