@@ -392,17 +392,7 @@ console.log("Hello, World!");`);
               <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
             </PanelResizeHandle>
 
-            <Panel defaultSize={12} minSize={12}>
-              <div className="h-full p-4">
-                <FileExplorer onFileSelect={handleFileSelect} />
-              </div>
-            </Panel>
-
-            <PanelResizeHandle className="w-2 hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10 transition-colors">
-              <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
-            </PanelResizeHandle>
-
-            <Panel defaultSize={60} minSize={30}>
+            <Panel defaultSize={75} minSize={30}>
               <div className="h-full p-4">
                 <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
                   <Tabs defaultValue="editor" className="h-full flex flex-col">
@@ -413,25 +403,37 @@ console.log("Hello, World!");`);
 
                     <TabsContent value="editor" className="flex-1 mt-0">
                       <div className="h-full p-4">
-                        <div className="h-full flex flex-col">
-                          <EditorTabs
-                            tabs={openTabs}
-                            activeTabId={activeTabId}
-                            onTabSelect={handleTabSelect}
-                            onTabClose={handleTabClose}
-                          />
-                          {activeTabId && (
-                            <div className="flex-1 min-h-0">
-                              <CodeEditor 
-                                value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
-                                onChange={debouncedHandleCodeChange}
-                                language={openTabs.find(t => t.id === activeTabId)?.language}
-                                path={openTabs.find(t => t.id === activeTabId)?.path}
-                                onSave={handleSave}
+                        <PanelGroup direction="horizontal" className="h-full">
+                          <Panel defaultSize={20} minSize={15}>
+                            <FileExplorer onFileSelect={handleFileSelect} />
+                          </Panel>
+
+                          <PanelResizeHandle className="w-2 hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10 transition-colors">
+                            <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
+                          </PanelResizeHandle>
+
+                          <Panel defaultSize={80} minSize={30}>
+                            <div className="h-full flex flex-col">
+                              <EditorTabs
+                                tabs={openTabs}
+                                activeTabId={activeTabId}
+                                onTabSelect={handleTabSelect}
+                                onTabClose={handleTabClose}
                               />
+                              {activeTabId && (
+                                <div className="flex-1 min-h-0">
+                                  <CodeEditor 
+                                    value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
+                                    onChange={debouncedHandleCodeChange}
+                                    language={openTabs.find(t => t.id === activeTabId)?.language}
+                                    path={openTabs.find(t => t.id === activeTabId)?.path}
+                                    onSave={handleSave}
+                                  />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
+                          </Panel>
+                        </PanelGroup>
                       </div>
                     </TabsContent>
 

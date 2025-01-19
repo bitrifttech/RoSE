@@ -3,6 +3,7 @@ import requests
 from pydantic import Field
 from typing import List, Dict, Any
 import logging
+import os
 
 from langchain.tools import BaseTool
 from langchain.callbacks.manager import CallbackManagerForToolRun
@@ -133,7 +134,7 @@ class FileSystemTool(BaseTool):
 
 class MoveFileTool(BaseTool):
     name: str = "move_file"
-    description: str = "Move a file or directory from source to destination"
+    description: str = "Move a file or directory from source to destination. If the destination directory doesn't exist, it will be created."
     args_schema: type[BaseModel] = MoveOperationInput
     base_url: str = "http://host.docker.internal:8030"
 
@@ -145,14 +146,43 @@ class MoveFileTool(BaseTool):
     ) -> str:
         """Run the move file tool."""
         url = f"{self.base_url}/move"
-        data = {"source": source, "destination": destination}
+        data = {"sourcePath": source, "targetPath": destination}
         
         try:
+            # First ensure the target directory exists
+            target_dir = os.path.dirname(destination)
+            if target_dir:  # Only create if there's a directory part
+                logger.debug(f"Ensuring target directory exists: {target_dir}")
+                dir_url = f"{self.base_url}/files/{target_dir.lstrip('/')}"
+                dir_response = requests.post(dir_url, json={"content": "", "isDirectory": True})
+                dir_response.raise_for_status()
+            
+            # Now move the file
+            logger.debug(f"Moving file/directory from {source} to {destination}")
+            logger.debug(f"Request URL: {url}")
+            logger.debug(f"Request data: {data}")
+            
             response = requests.post(url, json=data)
+            logger.debug(f"Response status: {response.status_code}")
+            logger.debug(f"Response headers: {dict(response.headers)}")
+            try:
+                logger.debug(f"Response body: {response.json()}")
+            except:
+                logger.debug(f"Response text: {response.text}")
+            
             response.raise_for_status()
             return f"Successfully moved {source} to {destination}"
         except requests.exceptions.RequestException as e:
-            return f"Error moving file: {str(e)}"
+            error_msg = f"Error moving file: {str(e)}"
+            logger.error(error_msg)
+            if hasattr(e, 'response'):
+                logger.error(f"Response status: {e.response.status_code}")
+                logger.error(f"Response headers: {dict(e.response.headers)}")
+                try:
+                    logger.error(f"Response body: {e.response.json()}")
+                except:
+                    logger.error(f"Response text: {e.response.text}")
+            return error_msg
 
 class CommandExecutionTool(BaseTool):
     name: str = "execute_command"

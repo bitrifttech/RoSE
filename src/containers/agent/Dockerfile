@@ -26,10 +26,11 @@ RUN mkdir -p app && \
     cp -r node_modules/@xterm/addon-fit/lib/addon-fit.js public/xterm/
 
 # Set default environment variables
-ENV PORT=3000
+ENV PORT=4000
 
 # Expose ports
 EXPOSE 3000
+EXPOSE 4000
 EXPOSE 8010
 EXPOSE 8020
 EXPOSE 8080

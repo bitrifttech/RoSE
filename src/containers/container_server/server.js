@@ -132,6 +132,7 @@ app.post('/container', async (req, res) => {
         '8010/tcp': {},
         '8020/tcp': {},
         '8080/tcp': {},
+        '4000/tcp': {},
         '3000/tcp': {},
       },
       HostConfig: {
@@ -139,7 +140,7 @@ app.post('/container', async (req, res) => {
           '8010/tcp': [{ HostPort: '8010' }],
           '8020/tcp': [{ HostPort: '8020' }],
           '8080/tcp': [{ HostPort: '8040' }],
-          '3000/tcp': [{ HostPort: '8030' }],
+          '4000/tcp': [{ HostPort: '8030' }],
         },
       },
     });
