@@ -337,7 +337,7 @@ console.log("Hello, World!");`);
             <ArrowLeft className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
           </Button>
           <div className="flex flex-col">
-            <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">Nova Project</h1>
+            <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">Rose Project</h1>
             <p className="text-xs text-[#4a5d7e]/70 dark:text-white/50">Development Environment</p>
           </div>
         </div>

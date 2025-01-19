@@ -124,7 +124,7 @@ app.post('/container', async (req, res) => {
   try {
     // Create a new Docker container (adjust parameters as needed)
     const container = await docker.createContainer({
-      Image: 'nova_agent:latest',
+      Image: 'rose_agent:latest',
       Tty: true,
       OpenStdin: true,
       StdinOnce: false,
@@ -185,14 +185,14 @@ app.delete('/container/:containerId', async (req, res) => {
   }
 });
 
-// Route: GET /containers - List all running nova_agent containers
+// Route: GET /containers - List all running rose_agent containers
 app.get('/containers', async (req, res) => {
   try {
     // Get all containers
     const containers = await docker.listContainers({
       all: false,  // only running containers
       filters: JSON.stringify({
-        ancestor: ['nova_agent:latest']
+        ancestor: ['rose_agent:latest']
       })
     });
 

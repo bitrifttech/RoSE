@@ -108,7 +108,7 @@ export async function startServer(): Promise<void> {
     body: JSON.stringify({
       command: 'node',
       args: ['server.js'],
-      cwd: '/Users/trips/bitrift/nova/nova-app/src/containers/agent/app'  // Specify the working directory
+      cwd: '/Users/trips/bitrift/rose/rose-app/src/containers/agent/app'  // Specify the working directory
     }),
   });
   

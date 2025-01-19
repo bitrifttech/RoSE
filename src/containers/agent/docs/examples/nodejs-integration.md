@@ -12,7 +12,7 @@ npm install axios ws
 const WebSocket = require('ws');
 const axios = require('axios');
 
-class NovaClient {
+class RoseClient {
   constructor(baseUrl = 'http://localhost:3000') {
     this.baseUrl = baseUrl;
     this.ws = null;
@@ -155,16 +155,16 @@ class NovaClient {
   }
 }
 
-module.exports = NovaClient;
+module.exports = RoseClient;
 ```
 
 ## Usage Example
 
 ```javascript
-const NovaClient = require('./nova-client');
+const RoseClient = require('./rose-client');
 
 async function example() {
-  const client = new NovaClient('http://localhost:3000');
+  const client = new RoseClient('http://localhost:3000');
 
   try {
     // List files
@@ -204,7 +204,7 @@ example();
 
 ```javascript
 async function robustExample() {
-  const client = new NovaClient('http://localhost:3000');
+  const client = new RoseClient('http://localhost:3000');
 
   try {
     // Check server status first

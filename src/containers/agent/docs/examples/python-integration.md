@@ -15,7 +15,7 @@ import websockets
 import requests
 from typing import Optional, List, Dict, Any, Union
 
-class NovaClient:
+class RoseClient:
     def __init__(self, base_url: str = 'http://localhost:3000'):
         self.base_url = base_url
         self.ws: Optional[websockets.WebSocketClientProtocol] = None
@@ -166,10 +166,10 @@ class NovaClient:
 
 ```python
 import asyncio
-from nova_client import NovaClient
+from rose_client import RoseClient
 
 async def main():
-    client = NovaClient('http://localhost:3000')
+    client = RoseClient('http://localhost:3000')
 
     try:
         # List files
@@ -236,7 +236,7 @@ def retry_operation(max_retries=3, delay=1):
         return wrapper
     return decorator
 
-class RobustNovaClient(NovaClient):
+class RobustRoseClient(RoseClient):
     @retry_operation()
     def list_files(self, path: str = ''):
         return super().list_files(path)
@@ -254,7 +254,7 @@ class RobustNovaClient(NovaClient):
 
 ```python
 class AsyncShellConnection:
-    def __init__(self, client: NovaClient):
+    def __init__(self, client: RoseClient):
         self.client = client
 
     async def __aenter__(self):
@@ -292,7 +292,7 @@ class AsyncShellConnection:
 
 # Usage
 async def example_with_context():
-    client = NovaClient()
+    client = RoseClient()
     async with AsyncShellConnection(client) as shell:
         await shell.send_command('ls -la\n')
         while True:

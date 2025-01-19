@@ -11,19 +11,19 @@
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd nova_app_container
+cd rose_app_container
 ```
 
 2. Build the Docker image:
 ```bash
-docker build -t nova_agent .
+docker build -t rose_agent .
 ```
 
 3. Run the container:
 ```bash
 docker run -p 3000:3000 -p 4000:4000 -p 5000:5000 -p 6000:6000 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  nova_agent
+  rose_agent
 ```
 
 ### Local Development

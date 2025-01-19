@@ -19,12 +19,12 @@ EXPOSE 3000 4000 5000 6000
 
 ### Basic Build
 ```bash
-docker build -t nova_agent .
+docker build -t rose_agent .
 ```
 
 ### Build with Custom Arguments
 ```bash
-docker build -t nova_agent \
+docker build -t rose_agent \
   --build-arg NODE_ENV=production \
   .
 ```
@@ -33,14 +33,14 @@ docker build -t nova_agent \
 
 ### Basic Run
 ```bash
-docker run -p 3000:3000 nova_agent
+docker run -p 3000:3000 rose_agent
 ```
 
 ### Run with All Ports
 ```bash
 docker run -p 3000:3000 -p 4000:4000 -p 5000:5000 -p 6000:6000 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  nova_agent
+  rose_agent
 ```
 
 ### Run with Custom Configuration
@@ -49,7 +49,7 @@ docker run -p 3000:3000 \
   -e NODE_ENV=production \
   -v /path/to/app:/usr/src/app/app \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  nova_agent
+  rose_agent
 ```
 
 ## Volume Mounts
@@ -77,22 +77,22 @@ For container management:
 
 ### Check Container Status
 ```bash
-docker ps -f name=nova_agent
+docker ps -f name=rose_agent
 ```
 
 ### View Logs
 ```bash
-docker logs nova_agent
+docker logs rose_agent
 ```
 
 ### Stop Container
 ```bash
-docker stop nova_agent
+docker stop rose_agent
 ```
 
 ### Remove Container
 ```bash
-docker rm -f nova_agent
+docker rm -f rose_agent
 ```
 
 ## Multi-Container Setup
@@ -101,7 +101,7 @@ docker rm -f nova_agent
 ```yaml
 version: '3.8'
 services:
-  nova_agent:
+  rose_agent:
     build: .
     ports:
       - "3000:3000"

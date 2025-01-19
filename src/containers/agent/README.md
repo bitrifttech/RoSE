@@ -1,4 +1,4 @@
-# Nova App Container
+# RoSe App Container
 
 A Node.js service that provides filesystem access and command execution capabilities within a container.
 
@@ -38,12 +38,12 @@ A Node.js service that provides filesystem access and command execution capabili
 
 1. Build the container:
    ```bash
-   docker build -t nova-app-container .
+   docker build -t rose-app-container .
    ```
 
 2. Run the container:
    ```bash
-   docker run -p 3000:3000 nova-app-container
+   docker run -p 3000:3000 rose-app-container
    ```
 
 ## Development

@@ -1,7 +1,7 @@
-# Nova App Container Documentation
+# Rose App Container Documentation
 
 ## Overview
-Nova App Container is a containerized service that provides file system access and command execution capabilities through both REST APIs and WebSocket connections. It features a web-based terminal interface and comprehensive file management capabilities.
+Rose App Container is a containerized service that provides file system access and command execution capabilities through both REST APIs and WebSocket connections. It features a web-based terminal interface and comprehensive file management capabilities.
 
 ## Documentation Structure
 

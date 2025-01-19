@@ -12,9 +12,9 @@ services:
     volumes:
       - ./src/containers/langflow:/app
 
-  container-server:
+  container-orchestrator:
     build: 
-      context: ./src/containers/container_server
+      context: ./src/containers/container_orchestrator
     ports:
       - "8000:8080"
     volumes:
@@ -32,7 +32,7 @@ services:
       - "8200:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_DATABASE=nova
+      - MYSQL_DATABASE=rose
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:

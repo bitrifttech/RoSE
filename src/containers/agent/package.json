@@ -1,5 +1,5 @@
 {
-  "name": "nova-app-container",
+  "name": "rose-app-container",
   "version": "1.0.0",
   "description": "Container service for file operations and command execution",
   "main": "src/server.js",

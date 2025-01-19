@@ -1,7 +1,7 @@
 # Security Guide
 
 ## Overview
-This guide covers security considerations and best practices for deploying and integrating with Nova App Container.
+This guide covers security considerations and best practices for deploying and integrating with Rose App Container.
 
 ## Network Security
 
