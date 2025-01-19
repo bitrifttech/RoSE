@@ -85,9 +85,25 @@ class FileSystemTool(BaseTool):
                 # Create/Update file or directory
                 url = f"{self.base_url}/files/{path.lstrip('/')}"
                 data = {"content": content or "", "isDirectory": is_directory}
-                logger.debug(f"Creating/updating at URL: {url}")
-                logger.debug(f"Request data: {data}")
-                response = requests.post(url, json=data)
+                
+                # Check if file exists to determine if we should create or update
+                try:
+                    check_response = requests.get(url)
+                    file_exists = check_response.status_code == 200
+                except:
+                    file_exists = False
+                
+                logger.debug(f"File exists: {file_exists}")
+                if file_exists and not is_directory:
+                    # Update existing file with PUT
+                    logger.debug(f"Updating file at URL: {url}")
+                    logger.debug(f"Request data: {data}")
+                    response = requests.put(url, json=data)
+                else:
+                    # Create new file/directory with POST
+                    logger.debug(f"Creating file/directory at URL: {url}")
+                    logger.debug(f"Request data: {data}")
+                    response = requests.post(url, json=data)
             else:
                 # Read file or directory (content is None and not is_directory)
                 url = f"{self.base_url}/files/{path.lstrip('/')}"
