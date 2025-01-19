@@ -31,8 +31,9 @@ class FileSystemTool(BaseTool):
     name: str = "file_system"
     description: str = """Tool for managing files and directories. Supports:
     1. Read file/directory: Pass only path
-    2. Create/Update: Pass path and content (and is_directory=True for directories)
-    3. Delete: Pass path and content='' (empty string) and is_directory flag"""
+    2. Create directory: Pass path and is_directory=True
+    3. Create/Update file: Pass path and content
+    4. Delete: Pass path and content='' (empty string) and is_directory flag"""
     args_schema: type[BaseModel] = FileOperationInput
     base_url: str = "http://host.docker.internal:8030"  # Host machine URL
 
@@ -80,15 +81,15 @@ class FileSystemTool(BaseTool):
                 
                 if response.status_code == 200:
                     return json.dumps({"message": "Deleted successfully"})
-            elif content is not None:
-                # Create or update file/directory
+            elif content is not None or is_directory:
+                # Create/Update file or directory
                 url = f"{self.base_url}/files/{path.lstrip('/')}"
-                data = {"content": content, "isDirectory": is_directory}
+                data = {"content": content or "", "isDirectory": is_directory}
                 logger.debug(f"Creating/updating at URL: {url}")
                 logger.debug(f"Request data: {data}")
                 response = requests.post(url, json=data)
             else:
-                # Read file or directory (content is None)
+                # Read file or directory (content is None and not is_directory)
                 url = f"{self.base_url}/files/{path.lstrip('/')}"
                 logger.debug(f"Reading from URL: {url}")
                 response = requests.get(url)
