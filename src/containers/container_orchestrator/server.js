@@ -124,7 +124,7 @@ app.post('/container', async (req, res) => {
   try {
     // Create a new Docker container (adjust parameters as needed)
     const container = await docker.createContainer({
-      Image: 'dev_container:latest',
+      Image: 'rose-dev_container:latest',
       Tty: true,
       OpenStdin: true,
       StdinOnce: false,

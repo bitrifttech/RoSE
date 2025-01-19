@@ -8,12 +8,13 @@ import os
 from pathlib import Path
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_openai_functions_agent
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain.callbacks.base import BaseCallbackHandler
 import traceback
 
 from tools.agent_tools import get_agent_tools
+from prompts.system import get_agent_prompt
 
 # Configure logging
 logging.basicConfig(
@@ -90,13 +91,7 @@ try:
     
     # Create the prompt template
     logger.info("Creating prompt template...")
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are RoSE, an AI assistant with access to file system and command execution capabilities.
-        Your purpose is to help users manage their development environment and execute tasks.
-        Always be clear about what actions you're taking and provide helpful feedback."""),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
+    prompt = get_agent_prompt()
     logger.info("Prompt template created successfully")
     
     # Create the agent
