@@ -26,6 +26,24 @@ services:
       timeout: 10s
       retries: 3
 
+  dev_container:
+    build:
+      context: ./src/containers/dev_container
+      dockerfile: Dockerfile
+    ports:
+      - "8010:8010"  # Terminal websocket
+      - "8020:8020"  # File operations
+      - "8030:4000"  # Command execution
+      - "8040:8080"  # HTTP server
+      - "3000:3000"  # Next.js dev server
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./src/containers/dev_container:/app
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    restart: unless-stopped
+
   mysql:
     image: mysql:8.0
     ports:

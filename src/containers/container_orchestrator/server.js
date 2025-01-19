@@ -192,7 +192,7 @@ app.get('/containers', async (req, res) => {
     const containers = await docker.listContainers({
       all: false,  // only running containers
       filters: JSON.stringify({
-        ancestor: ['dev_container:latest']
+        ancestor: ['rose-dev_container:latest']
       })
     });
 
