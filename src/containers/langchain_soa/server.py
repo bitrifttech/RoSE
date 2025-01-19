@@ -8,9 +8,10 @@ import os
 from pathlib import Path
 from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_openai_functions_agent
-from langchain_core.prompts import MessagesPlaceholder
-from langchain_core.messages import HumanMessage, AIMessage
+from langchain_core.prompts import MessagesPlaceholder, ChatPromptTemplate
+from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain.callbacks.base import BaseCallbackHandler
+from langchain.memory import ConversationSummaryMemory
 import traceback
 
 from tools.agent_tools import get_agent_tools
@@ -22,6 +23,19 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Store for conversation memories
+memory_store = {}
+
+def get_memory(session_id: str, llm):
+    """Get or create a conversation memory for a session"""
+    if session_id not in memory_store:
+        memory_store[session_id] = ConversationSummaryMemory(
+            llm=llm,
+            max_token_limit=2000,
+            return_messages=True
+        )
+    return memory_store[session_id]
 
 # Custom callback handler for detailed logging
 class DetailedLogger(BaseCallbackHandler):
@@ -66,6 +80,105 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class QueryInput(BaseModel):
+    input: str
+    session_id: str = "default"  # Add session_id field with default value
+
+@app.get("/")
+async def root():
+    logger.info("Root endpoint called")
+    return {"status": "ok", "message": "RoSE Agent API server is running"}
+
+def format_chat_history(messages):
+    """Format chat messages for logging"""
+    formatted = []
+    for msg in messages:
+        if isinstance(msg, (HumanMessage, AIMessage, SystemMessage)):
+            formatted.append({
+                "role": msg.__class__.__name__.replace("Message", "").lower(),
+                "content": msg.content
+            })
+        else:
+            formatted.append(str(msg))
+    return formatted
+
+@app.post("/run")
+async def run_agent(query: QueryInput):
+    logger.info("="*50)
+    logger.info(f"New request received: {query.input}")
+    logger.info("="*50)
+    
+    if agent_executor is None:
+        logger.error("Agent executor not initialized")
+        raise HTTPException(
+            status_code=500,
+            detail="Agent failed to initialize. Check server logs for details."
+        )
+    
+    try:
+        # Get memory for this session
+        memory = get_memory(query.session_id, llm)
+        
+        # Get chat history
+        memory_vars = memory.load_memory_variables({})
+        chat_history = memory_vars.get("history", [])
+        
+        # Log chat history in a readable format
+        logger.info(f"Loaded chat history: {format_chat_history(chat_history)}")
+        
+        # Execute the agent with the input and history
+        logger.info("Starting agent execution...")
+        result = agent_executor.invoke({
+            "input": query.input,
+            "chat_history": chat_history
+        })
+        logger.info("Agent execution completed")
+        
+        # Extract and log the output
+        output = result.get("output", "No output generated")
+        logger.info(f"Agent output: {output}")
+        
+        # Save the interaction to memory
+        memory.save_context(
+            {"input": query.input},
+            {"output": output}
+        )
+        
+        # Log updated chat history
+        updated_history = memory.load_memory_variables({}).get("history", [])
+        logger.info(f"Updated chat history: {format_chat_history(updated_history)}")
+        
+        # Check if there's intermediate thought process or tool usage
+        intermediate_steps = result.get("intermediate_steps", [])
+        actions = []
+        
+        for step in intermediate_steps:
+            if len(step) >= 2:  # Should have action and output
+                action, action_output = step
+                actions.append({
+                    "tool": action.tool,
+                    "tool_input": action.tool_input,
+                    "output": str(action_output)
+                })
+        
+        # Return both the final output and any intermediate actions
+        return {
+            "result": {
+                "text": output,
+                "actions": actions
+            }
+        }
+        
+    except Exception as e:
+        logger.error("="*50)
+        logger.error("AGENT EXECUTION FAILED")
+        logger.error("="*50)
+        logger.error(f"Error type: {type(e)}")
+        logger.error(f"Error message: {str(e)}")
+        logger.error("Traceback:")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Initialize the agent components
 try:
     logger.info("="*50)
@@ -89,9 +202,9 @@ try:
         logger.info(f"Initialized tool: {tool.name} - {tool.description}")
     logger.info(f"Total tools initialized: {len(tools)}")
     
-    # Create the prompt template
+    # Create the prompt template with chat history
     logger.info("Creating prompt template...")
-    prompt = get_agent_prompt()
+    prompt = get_agent_prompt()  # Get the prompt from system.py
     logger.info("Prompt template created successfully")
     
     # Create the agent
@@ -124,50 +237,7 @@ except Exception as e:
     logger.error(traceback.format_exc())
     agent_executor = None
 
-class QueryInput(BaseModel):
-    input: str
-
-@app.get("/")
-async def root():
-    logger.info("Root endpoint called")
-    return {"status": "ok", "message": "RoSE Agent API server is running"}
-
-@app.post("/run")
-async def run_agent(query: QueryInput):
-    logger.info("="*50)
-    logger.info(f"New request received: {query.input}")
-    logger.info("="*50)
-    
-    if agent_executor is None:
-        logger.error("Agent executor not initialized")
-        raise HTTPException(
-            status_code=500,
-            detail="Agent failed to initialize. Check server logs for details."
-        )
-    
-    try:
-        # Execute the agent with the input
-        logger.info("Starting agent execution...")
-        result = agent_executor.invoke({"input": query.input})
-        logger.info("Agent execution completed")
-        logger.debug(f"Full result: {json.dumps(result, indent=2)}")
-        
-        # Extract the relevant output
-        output = result.get("output", "No output generated")
-        logger.info(f"Final output: {output}")
-        
-        return {"result": {"text": output}}
-    except Exception as e:
-        logger.error("="*50)
-        logger.error("AGENT EXECUTION FAILED")
-        logger.error("="*50)
-        logger.error(f"Error type: {type(e)}")
-        logger.error(f"Error message: {str(e)}")
-        logger.error("Traceback:")
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=str(e))
-
 if __name__ == "__main__":
     import uvicorn
     logger.info("Starting server...")
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
