@@ -19,12 +19,12 @@ EXPOSE 3000 4000 5000 6000
 
 ### Basic Build
 ```bash
-docker build -t rose_agent .
+docker build -t dev_container .
 ```
 
 ### Build with Custom Arguments
 ```bash
-docker build -t rose_agent \
+docker build -t dev_container \
   --build-arg NODE_ENV=production \
   .
 ```
@@ -33,14 +33,14 @@ docker build -t rose_agent \
 
 ### Basic Run
 ```bash
-docker run -p 3000:3000 rose_agent
+docker run -p 3000:3000 dev_container
 ```
 
 ### Run with All Ports
 ```bash
 docker run -p 3000:3000 -p 4000:4000 -p 5000:5000 -p 6000:6000 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  rose_agent
+  dev_container
 ```
 
 ### Run with Custom Configuration
@@ -49,7 +49,7 @@ docker run -p 3000:3000 \
   -e NODE_ENV=production \
   -v /path/to/app:/usr/src/app/app \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  rose_agent
+  dev_container
 ```
 
 ## Volume Mounts
@@ -77,22 +77,22 @@ For container management:
 
 ### Check Container Status
 ```bash
-docker ps -f name=rose_agent
+docker ps -f name=dev_container
 ```
 
 ### View Logs
 ```bash
-docker logs rose_agent
+docker logs dev_container
 ```
 
 ### Stop Container
 ```bash
-docker stop rose_agent
+docker stop dev_container
 ```
 
 ### Remove Container
 ```bash
-docker rm -f rose_agent
+docker rm -f dev_container
 ```
 
 ## Multi-Container Setup
@@ -101,7 +101,7 @@ docker rm -f rose_agent
 ```yaml
 version: '3.8'
 services:
-  rose_agent:
+  dev_container:
     build: .
     ports:
       - "3000:3000"

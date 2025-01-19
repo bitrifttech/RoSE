@@ -16,14 +16,14 @@ cd rose_app_container
 
 2. Build the Docker image:
 ```bash
-docker build -t rose_agent .
+docker build -t dev_container .
 ```
 
 3. Run the container:
 ```bash
 docker run -p 3000:3000 -p 4000:4000 -p 5000:5000 -p 6000:6000 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  rose_agent
+  dev_container
 ```
 
 ### Local Development

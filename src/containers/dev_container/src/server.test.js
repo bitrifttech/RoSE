@@ -1,7 +1,7 @@
 const request = require('supertest');
 const fs = require('fs-extra');
 const path = require('path');
-const WebSocket = require('ws');
+const WebSocket = require('../node_modules/ws');
 const { createApp } = require('./server');
 
 const APP_DIR = path.join(__dirname, '../app');

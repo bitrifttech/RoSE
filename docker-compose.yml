@@ -1,16 +1,16 @@
 version: '3.8'
 
 services:
-  langflow:
+  langchain_soa:
     build: 
-      context: ./src/containers/langflow
+      context: ./src/containers/langchain_soa
       dockerfile: Dockerfile
     ports:
       - "8100:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - ./src/containers/langflow:/app
+      - ./src/containers/langchain_soa:/app
 
   container-orchestrator:
     build: 
