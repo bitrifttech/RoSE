@@ -119,8 +119,12 @@ const Chat = () => {
     <div className="flex flex-col h-full">
       <div 
         ref={chatContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4"
-        style={{ maxHeight: 'calc(100vh - 200px)' }}
+        className="flex-1 overflow-y-auto p-4 space-y-4"
+        style={{ 
+          height: 'calc(100vh - 80px)', // Adjust for header/footer
+          overflowY: 'auto',
+          overflowX: 'hidden'
+        }}
       >
         {messages.map((message) => (
           <div
@@ -172,19 +176,21 @@ const Chat = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      <form onSubmit={handleSendMessage} className="flex-none p-4 flex gap-2 bg-background border-t">
-        <AutoFocusInput
-          ref={inputRef}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Type your message..."
-          disabled={isLoading}
-          className="flex-1"
-        />
-        <Button type="submit" disabled={isLoading || !inputValue.trim()}>
-          <Send className="h-4 w-4" />
-        </Button>
-      </form>
+      <div className="flex-none sticky bottom-0 w-full bg-background border-t">
+        <form onSubmit={handleSendMessage} className="p-4 flex gap-2">
+          <AutoFocusInput
+            ref={inputRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="Type your message..."
+            disabled={isLoading}
+            className="flex-1"
+          />
+          <Button type="submit" disabled={isLoading || !inputValue.trim()}>
+            <Send className="h-4 w-4" />
+          </Button>
+        </form>
+      </div>
     </div>
   );
 };

@@ -82,142 +82,145 @@
     --sidebar-border: 260 40% 12%;
     --sidebar-ring: 298 50% 51%;
   }
+}
 
-  * {
-    @apply border-border;
-  }
+html, body {
+  @apply h-screen overflow-hidden;
+}
 
-  body {
-    @apply bg-background text-foreground;
-    background-image: 
-      linear-gradient(
-        to bottom right,
-        hsl(var(--background)) 0%,
-        hsl(220 30% 97%) 25%,
-        hsl(225 30% 96%) 50%,
-        hsl(230 30% 97%) 75%,
-        hsl(var(--background)) 100%
-      );
-    min-height: 100vh;
-  }
-
-  /* Modern card hover effects with updated gradient */
-  .card {
-    @apply transition-all duration-300;
-  }
-
-  .card:hover {
-    @apply shadow-lg;
-    background: linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%);
-    background-clip: padding-box;
-  }
-
-  /* Enhanced button styles with dynamic gradients */
-  button {
-    @apply transition-all duration-500 relative overflow-hidden;
-    background-size: 200% 200%;
-  }
-
-  button:not(.no-gradient) {
-    background-image: linear-gradient(
-      225deg,
-      hsl(var(--primary)) 0%,
-      hsl(var(--secondary)) 50%,
-      hsl(var(--accent)) 100%
+body {
+  @apply bg-background text-foreground;
+  background-image: 
+    linear-gradient(
+      to bottom right,
+      hsl(var(--background)) 0%,
+      hsl(220 30% 97%) 25%,
+      hsl(225 30% 96%) 50%,
+      hsl(230 30% 97%) 75%,
+      hsl(var(--background)) 100%
     );
-    animation: gradient-shift 5s ease infinite;
-  }
+}
 
-  button:hover:not(.no-gradient) {
-    @apply shadow-lg shadow-primary/20;
-    background-position: right center;
-  }
+#root {
+  @apply h-full;
+}
 
-  button:active:not(.no-gradient) {
-    @apply shadow-inner;
-    background-position: left center;
-  }
+/* Modern card hover effects with updated gradient */
+.card {
+  @apply transition-all duration-300;
+}
 
-  /* Gradient text effects */
-  .gradient-text {
-    background: linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%);
-    @apply bg-clip-text text-transparent;
-  }
+.card:hover {
+  @apply shadow-lg;
+  background: linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%);
+  background-clip: padding-box;
+}
 
-  /* Glass morphism effects */
-  .glass {
-    @apply bg-white/20 backdrop-blur-lg border border-white/30 shadow-xl;
-  }
+/* Enhanced button styles with dynamic gradients */
+button {
+  @apply transition-all duration-500 relative overflow-hidden;
+  background-size: 200% 200%;
+}
 
-  /* Modern scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+button:not(.no-gradient) {
+  background-image: linear-gradient(
+    225deg,
+    hsl(var(--primary)) 0%,
+    hsl(var(--secondary)) 50%,
+    hsl(var(--accent)) 100%
+  );
+  animation: gradient-shift 5s ease infinite;
+}
 
-  ::-webkit-scrollbar-track {
-    @apply bg-secondary/30 rounded-full;
-  }
+button:hover:not(.no-gradient) {
+  @apply shadow-lg shadow-primary/20;
+  background-position: right center;
+}
 
-  ::-webkit-scrollbar-thumb {
-    @apply bg-primary/60 rounded-full hover:bg-primary/80 transition-colors;
-  }
+button:active:not(.no-gradient) {
+  @apply shadow-inner;
+  background-position: left center;
+}
 
-  /* Fancy focus effects */
-  *:focus-visible {
-    @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background transition-shadow;
-  }
+/* Gradient text effects */
+.gradient-text {
+  background: linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%);
+  @apply bg-clip-text text-transparent;
+}
 
-  /* Resizable Panel Styles */
-  [data-panel] {
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-  }
+/* Glass morphism effects */
+.glass {
+  @apply bg-white/20 backdrop-blur-lg border border-white/30 shadow-xl;
+}
 
-  [data-panel-group] {
-    display: flex;
-    height: 100%;
-    width: 100%;
-  }
+/* Modern scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 
-  [data-panel-group][data-panel-group-direction="vertical"] {
-    flex-direction: column;
-  }
+::-webkit-scrollbar-track {
+  @apply bg-secondary/30 rounded-full;
+}
 
-  [data-panel-group][data-panel-group-direction="horizontal"] {
-    flex-direction: row;
-  }
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/60 rounded-full hover:bg-primary/80 transition-colors;
+}
 
-  [data-panel-resize-handle] {
-    background-color: transparent;
-    transition: background-color 0.2s linear;
-  }
+/* Fancy focus effects */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary/60 ring-offset-2 ring-offset-background transition-shadow;
+}
 
-  [data-panel-resize-handle]:hover {
-    background-color: hsl(var(--accent) / 0.2);
-  }
+/* Resizable Panel Styles */
+[data-panel] {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
 
-  [data-panel-resize-handle][data-panel-group-direction="horizontal"] {
-    width: 4px;
-    margin: 0 -2px;
-    cursor: col-resize;
-  }
+[data-panel-group] {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
 
-  [data-panel-resize-handle][data-panel-group-direction="vertical"] {
-    height: 4px;
-    margin: -2px 0;
-    cursor: row-resize;
-  }
+[data-panel-group][data-panel-group-direction="vertical"] {
+  flex-direction: column;
+}
 
-  [data-panel-resize-handle]::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-  }
+[data-panel-group][data-panel-group-direction="horizontal"] {
+  flex-direction: row;
+}
+
+[data-panel-resize-handle] {
+  background-color: transparent;
+  transition: background-color 0.2s linear;
+}
+
+[data-panel-resize-handle]:hover {
+  background-color: hsl(var(--accent) / 0.2);
+}
+
+[data-panel-resize-handle][data-panel-group-direction="horizontal"] {
+  width: 4px;
+  margin: 0 -2px;
+  cursor: col-resize;
+}
+
+[data-panel-resize-handle][data-panel-group-direction="vertical"] {
+  height: 4px;
+  margin: -2px 0;
+  cursor: row-resize;
+}
+
+[data-panel-resize-handle]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
 }
 
 @keyframes typing {
