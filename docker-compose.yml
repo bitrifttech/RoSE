@@ -1,16 +1,16 @@
 version: '3.8'
 
 services:
-  langchain_soa:
+  langgraph_soa:
     build: 
-      context: ./src/containers/langchain_soa
+      context: ./src/containers/langgraph_soa
       dockerfile: Dockerfile
     ports:
       - "8100:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - ./src/containers/langchain_soa:/app
+      - ./src/containers/langgraph_soa:/app
 
   container-orchestrator:
     build: 
