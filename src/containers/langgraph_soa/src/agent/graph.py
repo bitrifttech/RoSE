@@ -8,6 +8,7 @@ import logging
 import json
 
 from tools.agent_tools import get_agent_tools
+from src.prompts.system import get_system_prompt
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -27,14 +28,7 @@ llm = ChatOpenAI(
 
 # Create system message with tool descriptions
 tool_descriptions = "\n".join(f"- {tool.name}: {tool.description}" for tool in tools)
-system_msg = f"""You are RoSE, an AI assistant with access to file system and command execution capabilities.
-Your purpose is to help users manage their development environment and execute tasks.
-Always be clear about what actions you're taking and provide helpful feedback.
-
-You have access to these tools:
-{tool_descriptions}
-
-When you need to use a tool, use the tool's function call format."""
+system_msg = get_system_prompt(tool_descriptions)
 
 # Define the state schema
 class AgentState(TypedDict, total=False):
