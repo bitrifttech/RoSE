@@ -49,7 +49,8 @@ async def run_agent(request: Request):
         state = {
             "messages": [
                 HumanMessage(content=user_input)
-            ]
+            ],
+            "pending_response": None
         }
         
         try:
@@ -77,16 +78,32 @@ async def run_agent(request: Request):
                     content={"error": "No assistant response found"}
                 )
             
+            # Properly serialize each message with all fields
+            serialized_messages = []
+            for msg in messages:
+                msg_dict = {
+                    "role": msg.__class__.__name__.replace("Message", "").lower(),
+                    "content": msg.content
+                }
+                
+                # Add tool-specific fields for tool messages
+                if isinstance(msg, ToolMessage):
+                    msg_dict.update({
+                        "tool_call_id": getattr(msg, "tool_call_id", None),
+                        "name": getattr(msg, "name", None)
+                    })
+                
+                # Add any additional kwargs (like tool_calls)
+                if hasattr(msg, "additional_kwargs") and msg.additional_kwargs:
+                    msg_dict.update(msg.additional_kwargs)
+                
+                serialized_messages.append(msg_dict)
+            
+            logger.debug(f"Serialized messages: {json.dumps(serialized_messages, indent=2)}")
+            
             return JSONResponse(content={
                 "response": last_assistant_msg.content,
-                "messages": [
-                    {
-                        "role": msg.__class__.__name__.replace("Message", "").lower(),
-                        "content": msg.content,
-                        **msg.additional_kwargs
-                    }
-                    for msg in messages
-                ]
+                "messages": serialized_messages
             })
             
         except Exception as e:

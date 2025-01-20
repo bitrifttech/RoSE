@@ -2,7 +2,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
-from typing import TypedDict, Annotated, Sequence, Union, List, Dict, Any, Callable, Literal
+from typing import TypedDict, Annotated, Sequence, Union, List, Dict, Any, Callable, Literal, Optional
 import operator
 import logging
 import json
@@ -21,7 +21,7 @@ tools = get_agent_tools()
 
 # Initialize the LLM
 llm = ChatOpenAI(
-    model="gpt-4o",
+    model="gpt-4o-mini",
     temperature=0.7,
 )
 
@@ -37,8 +37,9 @@ You have access to these tools:
 When you need to use a tool, use the tool's function call format."""
 
 # Define the state schema
-class AgentState(TypedDict):
+class AgentState(TypedDict, total=False):
     messages: Annotated[Sequence[Union[HumanMessage, AIMessage, SystemMessage, ToolMessage]], operator.add]
+    pending_response: Optional[AIMessage]
 
 # Function to determine next step
 def should_continue(state: AgentState) -> Literal["tool", END]:
@@ -46,17 +47,27 @@ def should_continue(state: AgentState) -> Literal["tool", END]:
     try:
         messages = state["messages"]
         if not messages:
+            logger.debug("No messages in state")
             return END
             
         last_message = messages[-1]
         logger.debug(f"Last message type: {type(last_message)}")
         logger.debug(f"Last message content: {last_message}")
         
-        if isinstance(last_message, AIMessage) and hasattr(last_message, 'additional_kwargs'):
-            tool_calls = last_message.additional_kwargs.get('tool_calls', [])
-            if tool_calls:
-                logger.debug(f"Found tool calls: {tool_calls}")
+        # Check pending response first
+        pending_response = state.get("pending_response")
+        if pending_response:
+            logger.debug(f"Found pending response with tool calls")
+            if pending_response.additional_kwargs.get('tool_calls'):
                 return "tool"
+            return END
+        
+        # Then check last message
+        if isinstance(last_message, AIMessage) and last_message.additional_kwargs.get('tool_calls'):
+            logger.debug(f"Found tool calls in last message")
+            return "tool"
+            
+        logger.debug("No tool calls found, ending")
         return END
     except Exception as e:
         logger.error(f"Error in should_continue: {str(e)}", exc_info=True)
@@ -67,10 +78,16 @@ def call_llm(state: AgentState) -> AgentState:
     """Call the LLM with the current messages."""
     try:
         messages = state["messages"]
-        if len(messages) == 1:  # First message
+        if len(messages) == 1 and isinstance(messages[0], HumanMessage):  # First message
             messages = [SystemMessage(content=system_msg)] + messages
+            state["messages"] = messages
             
-        logger.debug(f"Calling LLM with messages: {messages}")
+        message_info = [{
+            'type': type(msg).__name__,
+            'content': msg.content,
+            'kwargs': msg.additional_kwargs
+        } for msg in messages]
+        logger.debug(f"Calling LLM with messages: {json.dumps(message_info, indent=2)}")
         
         # Create a list of tool configurations for the model
         tools_for_model = [{
@@ -82,11 +99,23 @@ def call_llm(state: AgentState) -> AgentState:
             }
         } for tool in tools]
         
+        logger.debug(f"Using tools: {json.dumps(tools_for_model, indent=2)}")
+        
         # Call the model with tool configurations
         response = llm.invoke(messages, tools=tools_for_model)
-        logger.debug(f"LLM response: {response}")
+        response_info = {
+            'content': response.content,
+            'kwargs': response.additional_kwargs
+        }
+        logger.debug(f"LLM response: {json.dumps(response_info, indent=2)}")
         
-        return {"messages": messages + [response]}
+        # If there are tool calls, don't add the response yet - wait for tool responses
+        if response.additional_kwargs.get('tool_calls'):
+            logger.debug("Found tool calls, storing in pending_response")
+            return {"messages": messages, "pending_response": response}
+        
+        logger.debug("No tool calls, adding response to messages")
+        return {"messages": messages + [response], "pending_response": None}
     except Exception as e:
         logger.error(f"Error in call_llm: {str(e)}", exc_info=True)
         raise
@@ -96,16 +125,25 @@ def call_tool(state: AgentState) -> AgentState:
     """Execute tool calls from the last message."""
     try:
         messages = state["messages"]
-        last_message = messages[-1]
+        # Get the pending response if it exists
+        pending_response = state.get("pending_response")
+        if pending_response:
+            logger.debug("Using pending response for tool calls")
+            last_message = pending_response
+        else:
+            logger.debug("Using last message for tool calls")
+            last_message = messages[-1]
         
         # Get tool calls from the message
         tool_calls = last_message.additional_kwargs.get('tool_calls', [])
+        logger.debug(f"Found tool calls: {json.dumps(tool_calls, indent=2)}")
+        
         if not tool_calls:
             logger.warning("No tool calls found in message")
-            return state
+            return {"messages": messages, "pending_response": None}
             
         # Execute each tool call
-        new_messages = []
+        new_messages = [pending_response] if pending_response else []
         for tool_call in tool_calls:
             try:
                 # Extract tool call info
@@ -113,6 +151,8 @@ def call_tool(state: AgentState) -> AgentState:
                 function_info = tool_call.get('function', {})
                 action = function_info.get('name')
                 args_str = function_info.get('arguments', '{}')
+                
+                logger.debug(f"Processing tool call: {tool_call_id} - {action}")
                 
                 if not action or not tool_call_id:
                     logger.warning(f"Invalid tool call format: {tool_call}")
@@ -129,6 +169,7 @@ def call_tool(state: AgentState) -> AgentState:
                 # Parse arguments
                 try:
                     args = json.loads(args_str)
+                    logger.debug(f"Parsed arguments: {json.dumps(args, indent=2)}")
                 except json.JSONDecodeError:
                     logger.error(f"Failed to parse tool arguments: {args_str}")
                     new_messages.append(
@@ -157,6 +198,7 @@ def call_tool(state: AgentState) -> AgentState:
                     continue
 
                 result = tool_to_use._run(**args)
+                logger.debug(f"Tool execution result: {result}")
                 new_messages.append(
                     ToolMessage(
                         content=str(result),
@@ -181,6 +223,9 @@ def call_tool(state: AgentState) -> AgentState:
         response_ids = {msg.tool_call_id for msg in new_messages if isinstance(msg, ToolMessage)}
         missing_ids = tool_call_ids - response_ids
         
+        if missing_ids:
+            logger.warning(f"Missing tool responses for IDs: {missing_ids}")
+        
         # Add error responses for any missing tool calls
         for missing_id in missing_ids:
             new_messages.append(
@@ -191,7 +236,10 @@ def call_tool(state: AgentState) -> AgentState:
                 )
             )
         
-        return {"messages": messages + new_messages}
+        logger.debug(f"Final message count: {len(messages + new_messages)}")
+        # Return all messages including the original messages, the assistant's response with tool calls,
+        # and all tool responses
+        return {"messages": messages + new_messages, "pending_response": None}
     except Exception as e:
         logger.error(f"Error in call_tool: {str(e)}", exc_info=True)
         raise

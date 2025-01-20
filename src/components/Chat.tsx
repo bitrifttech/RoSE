@@ -10,7 +10,11 @@ import { AutoFocusInput } from "@/components/ui/auto-focus-input";
 interface Message {
   id: number;
   text: string;
-  sender: "user" | "assistant";
+  sender: "user" | "assistant" | "system" | "tool";
+  role?: string;
+  toolCallId?: string;
+  toolName?: string;
+  refusal?: string | null;
 }
 
 const Chat = () => {
@@ -49,6 +53,7 @@ const Chat = () => {
       id: Date.now(),
       text: inputValue,
       sender: "user",
+      role: "human"
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -73,36 +78,64 @@ const Chat = () => {
       const data = await response.json();
       console.log('Received response:', data);
 
-      let messageText = '';
-      if (typeof data === 'string') {
-        messageText = data;
-      } else if (data.result && typeof data.result === 'object') {
-        if (data.result.text) {
-          messageText = data.result.text;
-        } else {
-          messageText = JSON.stringify(data.result, null, 2);
-        }
-      } else if (data.output && typeof data.output === 'string') {
-        messageText = data.output;
-      } else if (data.text && typeof data.text === 'string') {
-        messageText = data.text;
+      if (data.response && data.messages) {
+        // Add all messages from the conversation
+        const newMessages: Message[] = data.messages.map((msg: any) => ({
+          id: Date.now() + Math.random(),
+          text: msg.content,
+          sender: msg.role === "human" ? "user" : 
+                 msg.role === "system" ? "system" : 
+                 msg.role === "tool" ? "tool" : "assistant",
+          role: msg.role,
+          toolCallId: msg.tool_call_id,
+          toolName: msg.name,
+          refusal: msg.refusal
+        }));
+
+        // Filter out duplicates and messages we already have
+        const existingIds = new Set(messages.map(m => m.text + m.sender));
+        const uniqueNewMessages = newMessages.filter(
+          msg => !existingIds.has(msg.text + msg.sender)
+        );
+
+        setMessages(prev => [...prev, ...uniqueNewMessages]);
       } else {
-        messageText = JSON.stringify(data, null, 2);
+        // Fallback to simpler formats
+        let messageText = '';
+        if (data.response) {
+          messageText = data.response;
+        } else if (typeof data === 'string') {
+          messageText = data;
+        } else if (data.result && typeof data.result === 'object') {
+          if (data.result.text) {
+            messageText = data.result.text;
+          } else {
+            messageText = JSON.stringify(data.result, null, 2);
+          }
+        } else if (data.output && typeof data.output === 'string') {
+          messageText = data.output;
+        } else if (data.text && typeof data.text === 'string') {
+          messageText = data.text;
+        } else {
+          messageText = JSON.stringify(data, null, 2);
+        }
+
+        const assistantMessage: Message = {
+          id: Date.now(),
+          text: messageText,
+          sender: "assistant",
+          role: "ai"
+        };
+
+        setMessages((prev) => [...prev, assistantMessage]);
       }
-
-      const assistantMessage: Message = {
-        id: Date.now(),
-        text: messageText,
-        sender: "assistant",
-      };
-
-      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error:', error);
       const errorMessage: Message = {
         id: Date.now(),
         text: "Sorry, I encountered an error processing your request.",
         sender: "assistant",
+        role: "ai"
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -121,7 +154,7 @@ const Chat = () => {
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4"
         style={{ 
-          height: 'calc(100vh - 80px)', // Adjust for header/footer
+          height: 'calc(100vh - 80px)',
           overflowY: 'auto',
           overflowX: 'hidden'
         }}
@@ -137,9 +170,18 @@ const Chat = () => {
               className={`max-w-[80%] rounded-lg p-3 ${
                 message.sender === "user"
                   ? "bg-primary text-primary-foreground"
+                  : message.sender === "system"
+                  ? "bg-secondary/20"
+                  : message.sender === "tool"
+                  ? "bg-accent/20"
                   : "bg-muted"
               }`}
             >
+              {message.toolName && (
+                <div className="text-xs text-muted-foreground mb-1">
+                  Tool: {message.toolName}
+                </div>
+              )}
               <ReactMarkdown
                 components={{
                   code({node, inline, className, children, ...props}) {
