@@ -1,0 +1,22 @@
+{
+  "dockerfile_lines": [
+    "RUN pip install langchain_openai",
+    "RUN pip install fastapi",
+    "RUN pip install uvicorn>=0.24.0",
+    "RUN pip install pydantic>=2.5.2",
+    "RUN pip install requests>=2.31.0",
+    "RUN pip install python-dotenv>=1.0.0",
+    "RUN pip install langchain>=0.0.350",
+    "RUN pip install langgraph>=0.0.10",
+    "RUN pip install typing",
+    "RUN pip install extensions>=4.8.0"
+  ],
+  "graphs": {
+    "agent": "./src/agent/graph.py:graph"
+  },
+  "env": ".env",
+  "python_version": "3.11",
+  "dependencies": [
+    "."
+  ]
+}
