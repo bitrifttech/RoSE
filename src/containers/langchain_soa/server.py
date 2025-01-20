@@ -189,7 +189,7 @@ try:
     logger.info("Initializing LLM...")
     logger.info(f"OpenAI API Key present: {'OPENAI_API_KEY' in os.environ}")
     llm = ChatOpenAI(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         temperature=0.7,
         callbacks=[DetailedLogger()],
     )
