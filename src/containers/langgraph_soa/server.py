@@ -50,8 +50,7 @@ async def run_agent(request: Request):
             "messages": [
                 HumanMessage(content=user_input)
             ],
-            "pending_response": None,
-            "iteration_count": 0
+            "pending_response": None
         }
         
         try:
@@ -79,9 +78,32 @@ async def run_agent(request: Request):
                     content={"error": "No assistant response found"}
                 )
             
+            # Filter out the original message from the response
+            filtered_messages = [msg for msg in messages if not (
+                isinstance(msg, HumanMessage) and 
+                msg.content == user_input
+            )]
+            
+            # Deduplicate messages while preserving order
+            seen_contents = set()
+            deduplicated_messages = []
+            for msg in filtered_messages:
+                # Create a hashable key from message content and type
+                msg_key = (
+                    msg.__class__.__name__,
+                    msg.content,
+                    # Handle tool messages specially
+                    getattr(msg, 'tool_call_id', None) if isinstance(msg, ToolMessage) else None,
+                    getattr(msg, 'name', None) if isinstance(msg, ToolMessage) else None
+                )
+                
+                if msg_key not in seen_contents:
+                    seen_contents.add(msg_key)
+                    deduplicated_messages.append(msg)
+            
             # Properly serialize each message with all fields
             serialized_messages = []
-            for msg in messages:
+            for msg in deduplicated_messages:
                 msg_dict = {
                     "role": msg.__class__.__name__.replace("Message", "").lower(),
                     "content": msg.content

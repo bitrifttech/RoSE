@@ -44,20 +44,10 @@ def should_continue(state: AgentState) -> Literal["tool", END]:
         if not messages:
             logger.debug("No messages in state")
             return END
-        
-        # Initialize or increment iteration count
-        iteration_count = state.get("iteration_count", 0) + 1
-        state["iteration_count"] = iteration_count
-        
-        # Prevent infinite loops
-        if iteration_count > 5:  # Maximum 5 iterations
-            logger.warning("Reached maximum iterations, ending")
-            return END
             
         last_message = messages[-1]
         logger.debug(f"Last message type: {type(last_message)}")
         logger.debug(f"Last message content: {last_message}")
-        logger.debug(f"Iteration count: {iteration_count}")
         
         # Check pending response first
         pending_response = state.get("pending_response")
@@ -65,15 +55,16 @@ def should_continue(state: AgentState) -> Literal["tool", END]:
             logger.debug(f"Found pending response with tool calls")
             return "tool"
         
-        # Then check last message only if it's an AI message
+        # Only continue if the last message is an AI message with tool calls
         if isinstance(last_message, AIMessage):
-            if last_message.additional_kwargs.get('tool_calls'):
+            tool_calls = last_message.additional_kwargs.get('tool_calls', [])
+            if tool_calls and not any(isinstance(m, ToolMessage) for m in messages):
                 logger.debug(f"Found tool calls in last message")
                 return "tool"
-            logger.debug("AI message with no tool calls, ending")
+            logger.debug("AI message with no new tool calls, ending")
             return END
             
-        logger.debug("Non-AI message, ending")
+        logger.debug("Non-AI message or all tools executed, ending")
         return END
     except Exception as e:
         logger.error(f"Error in should_continue: {str(e)}", exc_info=True)
@@ -84,7 +75,10 @@ def call_llm(state: AgentState) -> AgentState:
     """Call the LLM with the current messages."""
     try:
         messages = state["messages"]
-        if len(messages) == 1 and isinstance(messages[0], HumanMessage):  # First message
+        
+        # Only add system message if it's not already there
+        has_system = any(isinstance(msg, SystemMessage) for msg in messages)
+        if not has_system:
             messages = [SystemMessage(content=system_msg)] + messages
             state["messages"] = messages
             
@@ -115,13 +109,23 @@ def call_llm(state: AgentState) -> AgentState:
         }
         logger.debug(f"LLM response: {json.dumps(response_info, indent=2)}")
         
+        # Check for duplicate response
+        if any(
+            isinstance(msg, AIMessage) and 
+            msg.content == response.content and 
+            msg.additional_kwargs == response.additional_kwargs 
+            for msg in messages
+        ):
+            logger.debug("Duplicate response detected, not adding to messages")
+            return {"messages": messages, "pending_response": None}
+        
         # If there are tool calls, don't add the response yet - wait for tool responses
         if response.additional_kwargs.get('tool_calls'):
             logger.debug("Found tool calls, storing in pending_response")
-            return {"messages": messages, "pending_response": response, "iteration_count": state.get("iteration_count", 0)}
+            return {"messages": messages, "pending_response": response}
         
         logger.debug("No tool calls, adding response to messages")
-        return {"messages": messages + [response], "pending_response": None, "iteration_count": state.get("iteration_count", 0)}
+        return {"messages": messages + [response], "pending_response": None}
     except Exception as e:
         logger.error(f"Error in call_llm: {str(e)}", exc_info=True)
         raise
@@ -146,10 +150,18 @@ def call_tool(state: AgentState) -> AgentState:
         
         if not tool_calls:
             logger.warning("No tool calls found in message")
-            return {"messages": messages, "pending_response": None, "iteration_count": state.get("iteration_count", 0)}
+            return {"messages": messages, "pending_response": None}
             
         # Execute each tool call
-        new_messages = [pending_response] if pending_response else []
+        new_messages = []
+        if pending_response and not any(
+            isinstance(msg, AIMessage) and 
+            msg.content == pending_response.content and 
+            msg.additional_kwargs == pending_response.additional_kwargs 
+            for msg in messages
+        ):
+            new_messages.append(pending_response)
+        
         for tool_call in tool_calls:
             try:
                 # Extract tool call info
@@ -157,6 +169,11 @@ def call_tool(state: AgentState) -> AgentState:
                 function_info = tool_call.get('function', {})
                 action = function_info.get('name')
                 args_str = function_info.get('arguments', '{}')
+                
+                # Skip if we've already processed this tool call
+                if any(msg for msg in messages if isinstance(msg, ToolMessage) and getattr(msg, 'tool_call_id', None) == tool_call_id):
+                    logger.debug(f"Skipping already processed tool call: {tool_call_id}")
+                    continue
                 
                 logger.debug(f"Processing tool call: {tool_call_id} - {action}")
                 
@@ -224,10 +241,10 @@ def call_tool(state: AgentState) -> AgentState:
                     )
                 )
         
-        # Ensure we have a response for each tool call
+        # Ensure we have a response for each new tool call
         tool_call_ids = {tc.get('id') for tc in tool_calls if tc.get('id')}
         response_ids = {msg.tool_call_id for msg in new_messages if isinstance(msg, ToolMessage)}
-        missing_ids = tool_call_ids - response_ids
+        missing_ids = tool_call_ids - response_ids - {msg.tool_call_id for msg in messages if isinstance(msg, ToolMessage)}
         
         if missing_ids:
             logger.warning(f"Missing tool responses for IDs: {missing_ids}")
@@ -243,9 +260,8 @@ def call_tool(state: AgentState) -> AgentState:
             )
         
         logger.debug(f"Final message count: {len(messages + new_messages)}")
-        # Return all messages including the original messages, the assistant's response with tool calls,
-        # and all tool responses
-        return {"messages": messages + new_messages, "pending_response": None, "iteration_count": state.get("iteration_count", 0)}
+        # Return all messages including the original messages and new tool responses
+        return {"messages": messages + new_messages, "pending_response": None}
     except Exception as e:
         logger.error(f"Error in call_tool: {str(e)}", exc_info=True)
         raise
