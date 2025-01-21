@@ -1,69 +1,167 @@
-# Welcome to your Lovable project
+<p align="center">
+  <img src="public/rose_logo1.jpeg" alt="RoSE Logo" width="200"/>
+</p>
 
-## Project info
+# RoSE (Robotic Software Engineer)
 
-**URL**: https://lovable.dev/projects/25240e62-89f5-401c-b23d-f7773aaf7f83
+RoSE is an advanced development environment that combines AI-powered assistance with robust development tools. It provides an integrated environment for software development with real-time AI assistance, file management, and terminal access.
 
-## How can I edit this code?
+## System Requirements
 
-There are several ways of editing your application.
+- Docker and Docker Compose
+- Node.js 20.x or later
+- OpenAI API key for AI features
 
-**Use Lovable**
+## Project Structure
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/25240e62-89f5-401c-b23d-f7773aaf7f83) and start prompting.
+The project consists of several Docker containers that work together:
 
-Changes made via Lovable will be committed automatically to this repo.
+### Main Components
 
-**Use your preferred IDE**
+1. **UX (Frontend)**
+   - React/Vite application with modern UI components
+   - Provides interface for file management, terminal access, and AI interactions
+   - Port: 8090
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. **Dev Container**
+   - Provides file operations and terminal access
+   - Handles server operations and file management
+   - Ports:
+     - 8010: Terminal websocket
+     - 8020: File operations
+     - 8030: Command execution
+     - 8040: HTTP server
+     - 3000: Development server
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+3. **Container Orchestrator**
+   - Manages container lifecycle and operations
+   - Handles API requests and container management
+   - Port: 8000
 
-Follow these steps:
+4. **LangGraph SOA**
+   - AI service using LangGraph for advanced language processing
+   - Provides conversational AI capabilities
+   - Port: 8100
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## Getting Started
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+1. **Environment Setup**
+   ```bash
+   # Clone the repository
+   git clone [repository-url]
+   cd RoSE
 
-# Step 3: Install the necessary dependencies.
-npm i
+   # Copy and configure environment variables
+   cp .env.example .env
+   # Edit .env and add your OpenAI API key
+   ```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+2. **Start the Development Environment**
+   ```bash
+   # Build and start all containers
+   docker compose up --build
+   ```
+
+   The application will be available at:
+   - Main UI: http://localhost:8090
+   - Container Orchestrator: http://localhost:8000
+   - LangGraph Service: http://localhost:8100
+
+3. **Development Workflow**
+   - The frontend code is in the root directory
+   - Each container's code is in `src/containers/[container-name]`
+   - Changes to frontend code will hot-reload
+   - Container changes require rebuilding: `docker compose up --build [container-name]`
+
+## Container Details
+
+### UX Container
+- **Purpose**: Serves the main user interface
+- **Technology**: React + Vite + TypeScript
+- **Key Features**:
+  - File browser and editor
+  - Terminal integration
+  - AI assistant interface
+  - Container management UI
+
+### Dev Container
+- **Purpose**: Development environment and file operations
+- **Technology**: Node.js + Express
+- **Features**:
+  - File system operations
+  - Terminal access
+  - Command execution
+  - Server management
+
+### Container Orchestrator
+- **Purpose**: Container management and API gateway
+- **Features**:
+  - Container lifecycle management
+  - API routing
+  - Health monitoring
+
+### LangGraph SOA
+- **Purpose**: AI service integration
+- **Technology**: Python + LangGraph
+- **Features**:
+  - Conversational AI
+  - Code assistance
+  - Context-aware responses
+
+## Development Commands
+
+```bash
+# Start all services
+docker compose up
+
+# Rebuild and start a specific service
+docker compose up --build [service-name]
+
+# View logs for a specific service
+docker compose logs -f [service-name]
+
+# Stop all services
+docker compose down
 ```
 
-**Edit a file directly in GitHub**
+## Common Development Tasks
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. **Frontend Development**
+   - Edit files in the root directory
+   - Changes will hot-reload in the browser
+   - Run `npm install` for new dependencies
 
-**Use GitHub Codespaces**
+2. **Container Development**
+   - Edit files in `src/containers/[container-name]`
+   - Rebuild container: `docker compose up --build [container-name]`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+3. **Adding New Features**
+   - Frontend components go in `src/components`
+   - Container-specific code goes in respective container directories
+   - Update `docker-compose.yml` for new services
 
-## What technologies are used for this project?
+## Troubleshooting
 
-This project is built with .
+1. **Container Connection Issues**
+   - Check container logs: `docker compose logs [service-name]`
+   - Verify all ports are available
+   - Ensure environment variables are set correctly
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+2. **File Permission Issues**
+   - Check volume mounts in `docker-compose.yml`
+   - Verify user permissions in containers
 
-## How can I deploy this project?
+3. **AI Service Issues**
+   - Verify OpenAI API key in `.env`
+   - Check LangGraph service logs
 
-Simply open [Lovable](https://lovable.dev/projects/25240e62-89f5-401c-b23d-f7773aaf7f83) and click on Share -> Publish.
+## Contributing
 
-## I want to use a custom domain - is that possible?
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+## License
+
+[Add License Information]
