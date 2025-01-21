@@ -9,9 +9,14 @@ const os = require('os');
 const pty = require('node-pty-prebuilt-multiarch');
 const dotenv = require('dotenv');
 const openaiRoutes = require('./openai-routes');
+const morgan = require('morgan');
+const logger = require('./utils/logger');
 
 // Load environment variables
 dotenv.config();
+
+// Ensure logs directory exists
+fs.ensureDirSync(path.join(__dirname, 'logs'));
 
 // API Routes Documentation
 const apiRoutes = {
@@ -382,28 +387,54 @@ function createApp() {
     let wss = null;
     const shellSessions = new Map();
 
-    // Middleware
-    app.use(bodyParser.json());
-    app.use(express.static(path.join(__dirname, '../public')));
-    app.use('/node_modules', express.static(path.join(__dirname, '../node_modules')));
+    // Add response time tracking
+    app.use((req, res, next) => {
+        const startTime = Date.now();
+        res.on('finish', () => {
+            const duration = Date.now() - startTime;
+            logger.info('Request completed', {
+                method: req.method,
+                url: req.originalUrl,
+                duration: `${duration}ms`,
+                status: res.statusCode
+            });
+        });
+        next();
+    });
 
-    // Add CORS middleware
+    // CORS middleware
     app.use((req, res, next) => {
         const allowedOrigins = ['http://127.0.0.1:8090', 'http://localhost:8090'];
         const origin = req.headers.origin;
         
+        logger.debug('Processing CORS', { origin, allowedOrigins });
+        
         if (allowedOrigins.includes(origin)) {
             res.header('Access-Control-Allow-Origin', origin);
+            res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
         }
         
-        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization');
-        
-        // Handle preflight requests
         if (req.method === 'OPTIONS') {
             return res.sendStatus(200);
         }
         next();
+    });
+
+    // Basic middleware
+    app.use(bodyParser.json());
+    app.use(express.static(path.join(__dirname, '../public')));
+    app.use('/node_modules', express.static(path.join(__dirname, '../node_modules')));
+
+    // Add Morgan HTTP request logging
+    app.use(morgan('combined', { stream: logger.stream }));
+
+    // Error handling middleware - must be last
+    app.use((err, req, res, next) => {
+        logger.logError(err, req);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
     });
 
     // Mount OpenAI-compatible routes
@@ -415,9 +446,11 @@ function createApp() {
 
     // Ensure app directory exists
     fs.ensureDirSync(APP_DIR);
+    logger.info('App directory ensured', { path: APP_DIR });
 
     // API Documentation route
     app.get('/api', (req, res) => {
+        logger.logRequest(req);
         res.json({
             openapi: '3.0.0',
             info: {
@@ -430,12 +463,15 @@ function createApp() {
     });
 
     // File Operations
-    app.get('/files/*', async (req, res) => {
+    app.get('/files/*', async (req, res, next) => {
         try {
             const relativePath = req.params[0] || '';
             const fullPath = path.join(APP_DIR, relativePath);
             
+            logger.logRequest(req, { relativePath, fullPath });
+
             if (!fullPath.startsWith(APP_DIR)) {
+                logger.warn('Access denied: Path outside app directory', { path: fullPath });
                 return res.status(403).json({ error: 'Access denied: Path outside app directory' });
             }
 
@@ -453,13 +489,23 @@ function createApp() {
                         modified: fileStats.mtime
                     };
                 }));
+
+                logger.info('Directory listing successful', { 
+                    path: relativePath, 
+                    fileCount: files.length 
+                });
+                
                 res.json(fileDetails);
             } else {
-                const content = await fs.readFile(fullPath, 'utf-8');
+                const content = await fs.readFile(fullPath, 'utf8');
+                logger.info('File read successful', { 
+                    path: relativePath, 
+                    size: stats.size 
+                });
                 res.json({ content });
             }
         } catch (error) {
-            res.status(404).json({ error: error.message });
+            next(error);
         }
     });
 
@@ -468,7 +514,10 @@ function createApp() {
             const relativePath = req.params[0];
             const fullPath = path.join(APP_DIR, relativePath);
             
+            logger.logRequest(req, { relativePath, fullPath });
+
             if (!fullPath.startsWith(APP_DIR)) {
+                logger.warn('Access denied: Path outside app directory', { path: fullPath });
                 return res.status(403).json({ error: 'Access denied: Path outside app directory' });
             }
 
@@ -481,9 +530,15 @@ function createApp() {
                 await fs.writeFile(fullPath, content);
             }
             
+            logger.info('File created successfully', { 
+                path: relativePath, 
+                isDirectory 
+            });
+            
             res.json({ message: 'Created successfully' });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            logger.logError(error, req);
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
@@ -492,15 +547,23 @@ function createApp() {
             const relativePath = req.params[0];
             const fullPath = path.join(APP_DIR, relativePath);
             
+            logger.logRequest(req, { relativePath, fullPath });
+
             if (!fullPath.startsWith(APP_DIR)) {
+                logger.warn('Access denied: Path outside app directory', { path: fullPath });
                 return res.status(403).json({ error: 'Access denied: Path outside app directory' });
             }
 
             const { content } = req.body;
             await fs.writeFile(fullPath, content);
+            logger.info('File updated successfully', { 
+                path: relativePath, 
+                size: content.length 
+            });
             res.json({ message: 'Updated successfully' });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            logger.logError(error, req);
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
@@ -509,14 +572,21 @@ function createApp() {
             const relativePath = req.params[0];
             const fullPath = path.join(APP_DIR, relativePath);
             
+            logger.logRequest(req, { relativePath, fullPath });
+
             if (!fullPath.startsWith(APP_DIR)) {
+                logger.warn('Access denied: Path outside app directory', { path: fullPath });
                 return res.status(403).json({ error: 'Access denied: Path outside app directory' });
             }
 
             await fs.remove(fullPath);
+            logger.info('File deleted successfully', { 
+                path: relativePath 
+            });
             res.json({ message: 'Deleted successfully' });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            logger.logError(error, req);
+            res.status(500).json({ error: 'Internal server error' });
         }
     });
 
@@ -530,24 +600,38 @@ function createApp() {
             const absoluteTargetPath = path.join(WORKSPACE_DIR, targetPath);
             
             if (!absoluteSourcePath.startsWith(WORKSPACE_DIR) || !absoluteTargetPath.startsWith(WORKSPACE_DIR)) {
+                logger.warn('Invalid path', { 
+                    sourcePath: absoluteSourcePath, 
+                    targetPath: absoluteTargetPath 
+                });
                 return res.status(403).send('Invalid path');
             }
 
             // Check if source exists and target parent directory exists
             if (!fs.existsSync(absoluteSourcePath)) {
+                logger.warn('Source file not found', { 
+                    path: absoluteSourcePath 
+                });
                 return res.status(404).send('Source file not found');
             }
 
             const targetDir = path.dirname(absoluteTargetPath);
             if (!fs.existsSync(targetDir)) {
+                logger.warn('Target directory not found', { 
+                    path: targetDir 
+                });
                 return res.status(404).send('Target directory not found');
             }
 
             // Move the file
             await fs.promises.rename(absoluteSourcePath, absoluteTargetPath);
+            logger.info('File moved successfully', { 
+                sourcePath: absoluteSourcePath, 
+                targetPath: absoluteTargetPath 
+            });
             res.sendStatus(200);
         } catch (error) {
-            console.error('Error moving file:', error);
+            logger.logError(error, req);
             res.status(500).send(error.message);
         }
     });
@@ -561,11 +645,17 @@ function createApp() {
             const absolutePath = path.join(WORKSPACE_DIR, filePath);
             
             if (!absolutePath.startsWith(WORKSPACE_DIR)) {
+                logger.warn('Invalid path', { 
+                    path: absolutePath 
+                });
                 return res.status(403).send('Invalid path');
             }
 
             // Check if path exists
             if (!fs.existsSync(absolutePath)) {
+                logger.warn('File not found', { 
+                    path: absolutePath 
+                });
                 return res.status(404).send('File not found');
             }
 
@@ -577,9 +667,12 @@ function createApp() {
                 await fs.promises.unlink(absolutePath);
             }
 
+            logger.info('File deleted successfully', { 
+                path: absolutePath 
+            });
             res.sendStatus(200);
         } catch (error) {
-            console.error('Error deleting file:', error);
+            logger.logError(error, req);
             res.status(500).send(error.message);
         }
     });
@@ -588,6 +681,11 @@ function createApp() {
     app.post('/execute', (req, res) => {
         const { command, args = [] } = req.body;
         
+        logger.logRequest(req, { 
+            command, 
+            args 
+        });
+
         const proc = spawn(command, args, { 
             cwd: APP_DIR,
             env: { ...process.env, PATH: process.env.PATH },
@@ -607,6 +705,13 @@ function createApp() {
 
         proc.on('close', (code) => {
             if (code !== 0) {
+                logger.warn('Command execution failed', { 
+                    command, 
+                    args, 
+                    code, 
+                    stdout, 
+                    stderr 
+                });
                 return res.status(500).json({ 
                     error: `Process exited with code ${code}`, 
                     stdout,
@@ -614,10 +719,17 @@ function createApp() {
                     code 
                 });
             }
+            logger.info('Command executed successfully', { 
+                command, 
+                args, 
+                stdout, 
+                stderr 
+            });
             res.json({ stdout, stderr });
         });
 
         proc.on('error', (error) => {
+            logger.logError(error, req);
             res.status(500).json({ 
                 error: error.message, 
                 stdout,
@@ -629,6 +741,7 @@ function createApp() {
     // App Server Management
     app.post('/server/start', (req, res) => {
         if (childProcess) {
+            logger.warn('Server is already running');
             return res.status(400).json({ error: 'Server is already running' });
         }
 
@@ -636,36 +749,50 @@ function createApp() {
         childProcess = spawn(command, args, { cwd: APP_DIR });
 
         childProcess.stdout.on('data', (data) => {
-            console.log(`App output: ${data}`);
+            logger.info('App output', { 
+                data: data.toString() 
+            });
         });
 
         childProcess.stderr.on('data', (data) => {
-            console.error(`App error: ${data}`);
+            logger.error('App error', { 
+                data: data.toString() 
+            });
         });
 
         childProcess.on('close', (code) => {
-            console.log(`App process exited with code ${code}`);
+            logger.info('App process exited', { 
+                code 
+            });
             childProcess = null;
         });
 
+        logger.info('Server started', { 
+            command, 
+            args 
+        });
         res.json({ message: 'Server started' });
     });
 
     app.post('/server/stop', (req, res) => {
         if (!childProcess) {
+            logger.warn('No server is running');
             return res.status(400).json({ error: 'No server is running' });
         }
 
         treeKill(childProcess.pid, 'SIGTERM', (err) => {
             if (err) {
+                logger.logError(err, req);
                 return res.status(500).json({ error: 'Failed to stop server' });
             }
             childProcess = null;
+            logger.info('Server stopped');
             res.json({ message: 'Server stopped' });
         });
     });
 
     app.get('/server/status', (req, res) => {
+        logger.logRequest(req);
         res.json({ 
             running: childProcess !== null,
             pid: childProcess ? childProcess.pid : null
@@ -676,13 +803,13 @@ function createApp() {
         return new Promise((resolve) => {
             const listenPort = testPort || port;
             server = app.listen(listenPort, () => {
-                console.log(`Server running on port ${listenPort}`);
+                logger.info('Server running on port ' + listenPort);
                 
                 // Initialize WebSocket server
                 wss = new WebSocket.Server({ server });
                 
                 wss.on('connection', (ws) => {
-                    console.log('New shell connection');
+                    logger.info('New shell connection');
                     
                     // Create terminal
                     const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
@@ -717,13 +844,13 @@ function createApp() {
                                     break;
                             }
                         } catch (err) {
-                            console.error('Error processing shell message:', err);
+                            logger.logError(err, req);
                         }
                     });
 
                     // Handle close
                     ws.on('close', () => {
-                        console.log('Shell connection closed');
+                        logger.info('Shell connection closed');
                         if (shellSessions.has(sessionId)) {
                             const session = shellSessions.get(sessionId);
                             session.term.kill();
@@ -757,7 +884,7 @@ function createApp() {
                         session.ws.close();
                     }
                 } catch (err) {
-                    console.error('Error closing shell session:', err);
+                    logger.logError(err, req);
                 }
             }
             shellSessions.clear();
