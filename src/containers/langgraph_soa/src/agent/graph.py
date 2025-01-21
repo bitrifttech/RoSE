@@ -34,6 +34,7 @@ system_msg = get_system_prompt(tool_descriptions)
 class AgentState(TypedDict, total=False):
     messages: Annotated[Sequence[Union[HumanMessage, AIMessage, SystemMessage, ToolMessage]], operator.add]
     pending_response: Optional[AIMessage]
+    iteration_count: int
 
 # Function to determine next step
 def should_continue(state: AgentState) -> Literal["tool", END]:
@@ -43,25 +44,36 @@ def should_continue(state: AgentState) -> Literal["tool", END]:
         if not messages:
             logger.debug("No messages in state")
             return END
+        
+        # Initialize or increment iteration count
+        iteration_count = state.get("iteration_count", 0) + 1
+        state["iteration_count"] = iteration_count
+        
+        # Prevent infinite loops
+        if iteration_count > 5:  # Maximum 5 iterations
+            logger.warning("Reached maximum iterations, ending")
+            return END
             
         last_message = messages[-1]
         logger.debug(f"Last message type: {type(last_message)}")
         logger.debug(f"Last message content: {last_message}")
+        logger.debug(f"Iteration count: {iteration_count}")
         
         # Check pending response first
         pending_response = state.get("pending_response")
-        if pending_response:
+        if pending_response and pending_response.additional_kwargs.get('tool_calls'):
             logger.debug(f"Found pending response with tool calls")
-            if pending_response.additional_kwargs.get('tool_calls'):
-                return "tool"
-            return END
-        
-        # Then check last message
-        if isinstance(last_message, AIMessage) and last_message.additional_kwargs.get('tool_calls'):
-            logger.debug(f"Found tool calls in last message")
             return "tool"
+        
+        # Then check last message only if it's an AI message
+        if isinstance(last_message, AIMessage):
+            if last_message.additional_kwargs.get('tool_calls'):
+                logger.debug(f"Found tool calls in last message")
+                return "tool"
+            logger.debug("AI message with no tool calls, ending")
+            return END
             
-        logger.debug("No tool calls found, ending")
+        logger.debug("Non-AI message, ending")
         return END
     except Exception as e:
         logger.error(f"Error in should_continue: {str(e)}", exc_info=True)
@@ -106,10 +118,10 @@ def call_llm(state: AgentState) -> AgentState:
         # If there are tool calls, don't add the response yet - wait for tool responses
         if response.additional_kwargs.get('tool_calls'):
             logger.debug("Found tool calls, storing in pending_response")
-            return {"messages": messages, "pending_response": response}
+            return {"messages": messages, "pending_response": response, "iteration_count": state.get("iteration_count", 0)}
         
         logger.debug("No tool calls, adding response to messages")
-        return {"messages": messages + [response], "pending_response": None}
+        return {"messages": messages + [response], "pending_response": None, "iteration_count": state.get("iteration_count", 0)}
     except Exception as e:
         logger.error(f"Error in call_llm: {str(e)}", exc_info=True)
         raise
@@ -134,7 +146,7 @@ def call_tool(state: AgentState) -> AgentState:
         
         if not tool_calls:
             logger.warning("No tool calls found in message")
-            return {"messages": messages, "pending_response": None}
+            return {"messages": messages, "pending_response": None, "iteration_count": state.get("iteration_count", 0)}
             
         # Execute each tool call
         new_messages = [pending_response] if pending_response else []
@@ -233,7 +245,7 @@ def call_tool(state: AgentState) -> AgentState:
         logger.debug(f"Final message count: {len(messages + new_messages)}")
         # Return all messages including the original messages, the assistant's response with tool calls,
         # and all tool responses
-        return {"messages": messages + new_messages, "pending_response": None}
+        return {"messages": messages + new_messages, "pending_response": None, "iteration_count": state.get("iteration_count", 0)}
     except Exception as e:
         logger.error(f"Error in call_tool: {str(e)}", exc_info=True)
         raise
@@ -261,5 +273,5 @@ workflow.add_edge("tool", "agent")
 # Set entry point
 workflow.set_entry_point("agent")
 
-# Compile
+# Compile with validation
 graph = workflow.compile()

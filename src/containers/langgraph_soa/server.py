@@ -50,7 +50,8 @@ async def run_agent(request: Request):
             "messages": [
                 HumanMessage(content=user_input)
             ],
-            "pending_response": None
+            "pending_response": None,
+            "iteration_count": 0
         }
         
         try:
