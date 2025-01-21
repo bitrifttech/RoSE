@@ -2,6 +2,8 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import ToolNode
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
+from langchain_core.chat_history import BaseChatMessageHistory
+from langchain_community.chat_message_histories import ChatMessageHistory
 from typing import TypedDict, Annotated, Sequence, Union, List, Dict, Any, Callable, Literal, Optional
 import operator
 import logging
@@ -30,13 +32,22 @@ llm = ChatOpenAI(
 tool_descriptions = "\n".join(f"- {tool.name}: {tool.description}" for tool in tools)
 system_msg = get_system_prompt(tool_descriptions)
 
+# Store chat histories by session ID
+chat_histories: Dict[str, ChatMessageHistory] = {}
+
+def get_chat_history(session_id: str) -> ChatMessageHistory:
+    """Get or create a chat history for the given session ID."""
+    if session_id not in chat_histories:
+        chat_histories[session_id] = ChatMessageHistory()
+    return chat_histories[session_id]
+
 # Define the state schema
 class AgentState(TypedDict, total=False):
     messages: Annotated[Sequence[Union[HumanMessage, AIMessage, SystemMessage, ToolMessage]], operator.add]
+    chat_history: Annotated[List[Dict[str, str]], operator.add]
     pending_response: Optional[AIMessage]
-    iteration_count: int
+    session_id: str
 
-# Function to determine next step
 def should_continue(state: AgentState) -> Literal["tool", END]:
     """Route to the next step based on the last message."""
     try:
@@ -70,25 +81,22 @@ def should_continue(state: AgentState) -> Literal["tool", END]:
         logger.error(f"Error in should_continue: {str(e)}", exc_info=True)
         raise
 
-# Function to call the LLM
 def call_llm(state: AgentState) -> AgentState:
     """Call the LLM with the current messages."""
     try:
         messages = state["messages"]
+        session_id = state.get("session_id", "default")
+        chat_history = get_chat_history(session_id)
         
-        # Only add system message if it's not already there
-        has_system = any(isinstance(msg, SystemMessage) for msg in messages)
-        if not has_system:
+        # Add system message to start of conversation if needed
+        if len(messages) == 1 and isinstance(messages[0], HumanMessage):
             messages = [SystemMessage(content=system_msg)] + messages
             state["messages"] = messages
             
-        message_info = [{
-            'type': type(msg).__name__,
-            'content': msg.content,
-            'kwargs': msg.additional_kwargs
-        } for msg in messages]
-        logger.debug(f"Calling LLM with messages: {json.dumps(message_info, indent=2)}")
-        
+        # Get full conversation history
+        all_messages = list(chat_history.messages) + messages
+        logger.debug(f"Full conversation history: {all_messages}")
+            
         # Create a list of tool configurations for the model
         tools_for_model = [{
             "type": "function",
@@ -101,8 +109,11 @@ def call_llm(state: AgentState) -> AgentState:
         
         logger.debug(f"Using tools: {json.dumps(tools_for_model, indent=2)}")
         
-        # Call the model with tool configurations
-        response = llm.invoke(messages, tools=tools_for_model)
+        # Call the model with tool configurations and chat history
+        response = llm.invoke(
+            all_messages,
+            tools=tools_for_model
+        )
         response_info = {
             'content': response.content,
             'kwargs': response.additional_kwargs
@@ -117,24 +128,44 @@ def call_llm(state: AgentState) -> AgentState:
             for msg in messages
         ):
             logger.debug("Duplicate response detected, not adding to messages")
-            return {"messages": messages, "pending_response": None}
+            return {
+                "messages": messages,
+                "pending_response": None,
+                "chat_history": state["chat_history"],
+                "session_id": session_id
+            }
         
         # If there are tool calls, don't add the response yet - wait for tool responses
         if response.additional_kwargs.get('tool_calls'):
             logger.debug("Found tool calls, storing in pending_response")
-            return {"messages": messages, "pending_response": response}
+            return {
+                "messages": messages,
+                "pending_response": response,
+                "chat_history": state["chat_history"],
+                "session_id": session_id
+            }
+        
+        # Add response to chat history
+        chat_history.add_message(response)
         
         logger.debug("No tool calls, adding response to messages")
-        return {"messages": messages + [response], "pending_response": None}
+        return {
+            "messages": messages + [response],
+            "pending_response": None,
+            "chat_history": state["chat_history"],
+            "session_id": session_id
+        }
     except Exception as e:
         logger.error(f"Error in call_llm: {str(e)}", exc_info=True)
         raise
 
-# Function to call a tool
 def call_tool(state: AgentState) -> AgentState:
     """Execute tool calls from the last message."""
     try:
         messages = state["messages"]
+        session_id = state.get("session_id", "default")
+        chat_history = get_chat_history(session_id)
+        
         # Get the pending response if it exists
         pending_response = state.get("pending_response")
         if pending_response:
@@ -150,7 +181,12 @@ def call_tool(state: AgentState) -> AgentState:
         
         if not tool_calls:
             logger.warning("No tool calls found in message")
-            return {"messages": messages, "pending_response": None}
+            return {
+                "messages": messages,
+                "pending_response": None,
+                "chat_history": state["chat_history"],
+                "session_id": session_id
+            }
             
         # Execute each tool call
         new_messages = []
@@ -161,32 +197,32 @@ def call_tool(state: AgentState) -> AgentState:
             for msg in messages
         ):
             new_messages.append(pending_response)
+            chat_history.add_message(pending_response)
         
         for tool_call in tool_calls:
             try:
+                # Skip if we've already processed this tool call
+                if any(msg for msg in messages if isinstance(msg, ToolMessage) and getattr(msg, 'tool_call_id', None) == tool_call.get('id')):
+                    logger.debug(f"Skipping already processed tool call: {tool_call.get('id')}")
+                    continue
+                
                 # Extract tool call info
                 tool_call_id = tool_call.get('id')
                 function_info = tool_call.get('function', {})
                 action = function_info.get('name')
                 args_str = function_info.get('arguments', '{}')
                 
-                # Skip if we've already processed this tool call
-                if any(msg for msg in messages if isinstance(msg, ToolMessage) and getattr(msg, 'tool_call_id', None) == tool_call_id):
-                    logger.debug(f"Skipping already processed tool call: {tool_call_id}")
-                    continue
-                
                 logger.debug(f"Processing tool call: {tool_call_id} - {action}")
                 
                 if not action or not tool_call_id:
                     logger.warning(f"Invalid tool call format: {tool_call}")
-                    # Even for invalid calls, we need to send a response
-                    new_messages.append(
-                        ToolMessage(
-                            content="Invalid tool call format",
-                            tool_call_id=tool_call_id or "unknown",
-                            name=action or "unknown"
-                        )
+                    tool_msg = ToolMessage(
+                        content="Invalid tool call format",
+                        tool_call_id=tool_call_id or "unknown",
+                        name=action or "unknown"
                     )
+                    new_messages.append(tool_msg)
+                    chat_history.add_message(tool_msg)
                     continue
                 
                 # Parse arguments
@@ -195,13 +231,13 @@ def call_tool(state: AgentState) -> AgentState:
                     logger.debug(f"Parsed arguments: {json.dumps(args, indent=2)}")
                 except json.JSONDecodeError:
                     logger.error(f"Failed to parse tool arguments: {args_str}")
-                    new_messages.append(
-                        ToolMessage(
-                            content=f"Failed to parse tool arguments: {args_str}",
-                            tool_call_id=tool_call_id,
-                            name=action
-                        )
+                    tool_msg = ToolMessage(
+                        content=f"Failed to parse tool arguments: {args_str}",
+                        tool_call_id=tool_call_id,
+                        name=action
                     )
+                    new_messages.append(tool_msg)
+                    chat_history.add_message(tool_msg)
                     continue
                 
                 logger.debug(f"Executing tool: {action} with args: {args}")
@@ -211,35 +247,35 @@ def call_tool(state: AgentState) -> AgentState:
                 if tool_to_use is None:
                     error_msg = f"Tool {action} not found"
                     logger.error(error_msg)
-                    new_messages.append(
-                        ToolMessage(
-                            content=error_msg,
-                            tool_call_id=tool_call_id,
-                            name=action
-                        )
+                    tool_msg = ToolMessage(
+                        content=error_msg,
+                        tool_call_id=tool_call_id,
+                        name=action
                     )
+                    new_messages.append(tool_msg)
+                    chat_history.add_message(tool_msg)
                     continue
 
                 result = tool_to_use._run(**args)
                 logger.debug(f"Tool execution result: {result}")
-                new_messages.append(
-                    ToolMessage(
-                        content=str(result),
-                        tool_call_id=tool_call_id,
-                        name=action
-                    )
+                tool_msg = ToolMessage(
+                    content=str(result),
+                    tool_call_id=tool_call_id,
+                    name=action
                 )
+                new_messages.append(tool_msg)
+                chat_history.add_message(tool_msg)
                 
             except Exception as e:
                 error_msg = f"Error executing tool {action if 'action' in locals() else 'unknown'}: {str(e)}"
                 logger.error(error_msg, exc_info=True)
-                new_messages.append(
-                    ToolMessage(
-                        content=error_msg,
-                        tool_call_id=tool_call_id if 'tool_call_id' in locals() else "unknown",
-                        name=action if 'action' in locals() else "unknown"
-                    )
+                tool_msg = ToolMessage(
+                    content=error_msg,
+                    tool_call_id=tool_call_id if 'tool_call_id' in locals() else "unknown",
+                    name=action if 'action' in locals() else "unknown"
                 )
+                new_messages.append(tool_msg)
+                chat_history.add_message(tool_msg)
         
         # Ensure we have a response for each new tool call
         tool_call_ids = {tc.get('id') for tc in tool_calls if tc.get('id')}
@@ -251,17 +287,22 @@ def call_tool(state: AgentState) -> AgentState:
         
         # Add error responses for any missing tool calls
         for missing_id in missing_ids:
-            new_messages.append(
-                ToolMessage(
-                    content="Tool execution failed",
-                    tool_call_id=missing_id,
-                    name="unknown"
-                )
+            tool_msg = ToolMessage(
+                content="Tool execution failed",
+                tool_call_id=missing_id,
+                name="unknown"
             )
+            new_messages.append(tool_msg)
+            chat_history.add_message(tool_msg)
         
         logger.debug(f"Final message count: {len(messages + new_messages)}")
         # Return all messages including the original messages and new tool responses
-        return {"messages": messages + new_messages, "pending_response": None}
+        return {
+            "messages": messages + new_messages,
+            "pending_response": None,
+            "chat_history": state["chat_history"],
+            "session_id": session_id
+        }
     except Exception as e:
         logger.error(f"Error in call_tool: {str(e)}", exc_info=True)
         raise

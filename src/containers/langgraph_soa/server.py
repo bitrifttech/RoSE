@@ -7,7 +7,7 @@ import os
 import json
 import logging
 import traceback
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
+from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
 from src.agent.graph import graph
 
 # Set up logging
@@ -24,8 +24,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global chat history store
+chat_histories: Dict[str, List[Dict[str, str]]] = {}
+
 class QueryInput(BaseModel):
     input: str
+    session_id: str = "default"  # Add session ID to support multiple conversations
 
 @app.get("/")
 def root():
@@ -38,6 +42,7 @@ async def run_agent(request: Request):
         # Get request data
         data = await request.json()
         user_input = data.get("input", "")
+        session_id = data.get("session_id", "default")
         
         if not user_input:
             return JSONResponse(
@@ -45,17 +50,20 @@ async def run_agent(request: Request):
                 content={"error": "No input provided"}
             )
         
-        # Create initial state
+        # Create initial state with chat history
         state = {
             "messages": [
                 HumanMessage(content=user_input)
             ],
-            "pending_response": None
+            "pending_response": None,
+            "chat_history": [],
+            "session_id": session_id
         }
         
         try:
-            # Run the agent
-            result = graph.invoke(state)
+            # Run the agent with session ID in config
+            config = {"configurable": {"session_id": session_id}}
+            result = graph.invoke(state, config=config)
             
             # Extract messages
             messages = result.get("messages", [])
@@ -78,11 +86,15 @@ async def run_agent(request: Request):
                     content={"error": "No assistant response found"}
                 )
             
+            # Update chat history
+            chat_history = result.get("chat_history", [])
+            chat_histories[session_id] = chat_history
+            
             # Filter out the original message from the response
             filtered_messages = [msg for msg in messages if not (
                 isinstance(msg, HumanMessage) and 
                 msg.content == user_input
-            )]
+            ) and not isinstance(msg, SystemMessage)]  # Also filter out system messages
             
             # Deduplicate messages while preserving order
             seen_contents = set()
@@ -123,10 +135,19 @@ async def run_agent(request: Request):
                 serialized_messages.append(msg_dict)
             
             logger.debug(f"Serialized messages: {json.dumps(serialized_messages, indent=2)}")
+            logger.debug(f"Chat history for session {session_id}: {json.dumps(chat_history, indent=2)}")
+            
+            # Ensure we have at least one message in the response
+            if not serialized_messages:
+                serialized_messages = [{
+                    "role": "ai",
+                    "content": last_assistant_msg.content
+                }]
             
             return JSONResponse(content={
                 "response": last_assistant_msg.content,
-                "messages": serialized_messages
+                "messages": serialized_messages,
+                "chat_history": chat_history
             })
             
         except Exception as e:
