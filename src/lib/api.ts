@@ -1,5 +1,6 @@
-// Use the dev server directly for now until we fix the proxy
-const BASE_URL = 'http://127.0.0.1:8030';
+// Use the proxy configured in vite.config.ts
+const BASE_URL = '/files';
+const SERVER_URL = '/server';
 
 export interface FileItem {
   name: string;
@@ -11,7 +12,7 @@ export interface FileItem {
 export async function listFiles(path: string): Promise<FileItem[]> {
   // Ensure path starts with a slash and doesn't end with one (unless it's root)
   const normalizedPath = path ? `/${path.replace(/^\/+|\/+$/g, '')}` : '/';
-  const response = await fetch(`${BASE_URL}/files${normalizedPath}`, {
+  const response = await fetch(`${BASE_URL}${normalizedPath}`, {
     headers: {
       'Accept': 'application/json',
     }
@@ -24,7 +25,7 @@ export async function listFiles(path: string): Promise<FileItem[]> {
 
 export async function readFile(path: string): Promise<string> {
   const normalizedPath = path.replace(/^\/+|\/+$/g, '');
-  const response = await fetch(`${BASE_URL}/files/${normalizedPath}`, {
+  const response = await fetch(`${BASE_URL}/${normalizedPath}`, {
     headers: {
       'Accept': 'application/json',
     }
@@ -38,7 +39,7 @@ export async function readFile(path: string): Promise<string> {
 
 export async function createFile(path: string, content: string, isDirectory: boolean = false): Promise<void> {
   const normalizedPath = path.replace(/^\/+|\/+$/g, '');
-  const response = await fetch(`${BASE_URL}/files/${normalizedPath}`, {
+  const response = await fetch(`${BASE_URL}/${normalizedPath}`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
@@ -53,7 +54,7 @@ export async function createFile(path: string, content: string, isDirectory: boo
 
 export async function updateFile(path: string, content: string): Promise<void> {
   const normalizedPath = path.replace(/^\/+|\/+$/g, '');
-  const response = await fetch(`${BASE_URL}/files/${normalizedPath}`, {
+  const response = await fetch(`${BASE_URL}/${normalizedPath}`, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
@@ -100,7 +101,7 @@ export async function moveFile(sourcePath: string, targetPath: string): Promise<
 }
 
 export async function startServer(): Promise<void> {
-  const response = await fetch(`${BASE_URL}/server/start`, {
+  const response = await fetch(`${SERVER_URL}/start`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -108,7 +109,7 @@ export async function startServer(): Promise<void> {
     body: JSON.stringify({
       command: 'node',
       args: ['server.js'],
-      cwd: '/Users/trips/bitrift/rose/rose-app/src/containers/agent/app'  // Specify the working directory
+      cwd: '/app'  // Use the container's app directory
     }),
   });
   
@@ -132,7 +133,7 @@ export async function startServer(): Promise<void> {
 }
 
 export async function stopServer(): Promise<void> {
-  const response = await fetch(`${BASE_URL}/server/stop`, {
+  const response = await fetch(`${SERVER_URL}/stop`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -161,7 +162,7 @@ export async function stopServer(): Promise<void> {
 export async function getServerStatus(): Promise<{ running: boolean }> {
   try {
     // Try to get status from the API server
-    const response = await fetch(`${BASE_URL}/server/status`, {
+    const response = await fetch(`${SERVER_URL}/status`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',

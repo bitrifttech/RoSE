@@ -13,8 +13,8 @@ export default defineConfig({
   server: {
     port: 8080,
     proxy: {
-      '^/files/.*': {
-        target: 'http://127.0.0.1:8030',
+      '/files': {
+        target: 'http://dev_container:4000',
         changeOrigin: true,
         secure: false,
         configure: (proxy, _options) => {
@@ -29,10 +29,20 @@ export default defineConfig({
           });
         }
       },
+      '/server': {
+        target: 'http://dev_container:4000',
+        changeOrigin: true,
+        secure: false,
+      },
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://container-orchestrator:8080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/langgraph': {
+        target: 'http://langgraph_soa:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/langgraph/, ''),
       },
     },
   },

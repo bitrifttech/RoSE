@@ -9,6 +9,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./src/containers/langgraph_soa:/app
+    networks:
+      - rose_network
 
   container-orchestrator:
     build: 
@@ -23,6 +25,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - rose_network
 
   dev_container:
     build:
@@ -41,6 +45,27 @@ services:
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     restart: unless-stopped
+    networks:
+      - rose_network
+
+  ux:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8080"  # Map container port 8080 to host port 8090
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    restart: unless-stopped
+    networks:
+      - rose_network
+
+networks:
+  rose_network:
+    driver: bridge
 
 volumes:
   mysql_data:

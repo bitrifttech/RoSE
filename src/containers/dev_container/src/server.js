@@ -389,7 +389,7 @@ function createApp() {
 
     // Add CORS middleware
     app.use((req, res, next) => {
-        const allowedOrigins = ['http://127.0.0.1:8080', 'http://localhost:8080'];
+        const allowedOrigins = ['http://127.0.0.1:8090', 'http://localhost:8090'];
         const origin = req.headers.origin;
         
         if (allowedOrigins.includes(origin)) {
