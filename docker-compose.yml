@@ -1,20 +1,20 @@
 services:
   langgraph_soa:
     build: 
-      context: ./src/containers/langgraph_soa
+      context: ./containers/langgraph_soa
       dockerfile: Dockerfile
     ports:
       - "8100:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - ./src/containers/langgraph_soa:/app
+      - ./containers/langgraph_soa:/app
     networks:
       - rose_network
 
   container-orchestrator:
     build: 
-      context: ./src/containers/container_orchestrator
+      context: ./containers/container_orchestrator
     ports:
       - "8000:8080"
     volumes:
@@ -30,7 +30,7 @@ services:
 
   dev_container:
     build:
-      context: ./src/containers/dev_container
+      context: ./containers/dev_container
       dockerfile: Dockerfile
     ports:
       - "8010:8010"  # Terminal websocket
@@ -41,7 +41,7 @@ services:
     tty: true
     stdin_open: true
     volumes:
-      - ./src/containers/dev_container:/app
+      - ./containers/dev_container:/app
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     restart: unless-stopped
@@ -50,12 +50,12 @@ services:
 
   ux:
     build:
-      context: .
+      context: ./containers/ux_container
       dockerfile: Dockerfile
     ports:
-      - "8090:8080"  # Map container port 8080 to host port 8090
+      - "8080:8080"  # Map container port 8080 to host port 8090
     volumes:
-      - .:/app
+      - ./containers/ux_container:/app
       - /app/node_modules
     environment:
       - NODE_ENV=development
