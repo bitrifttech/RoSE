@@ -1,5 +1,6 @@
-from typing import Dict, Any
-from dataclasses import dataclass
+from typing import Dict, Any, Optional
+from dataclasses import dataclass, field
+from ..llm.base import BaseLLM
 
 @dataclass
 class LLMConfig:
@@ -8,6 +9,17 @@ class LLMConfig:
     model_name: str
     temperature: float
     additional_params: Dict[str, Any] = None
+    _llm: Optional[BaseLLM] = field(default=None, init=False)
+    
+    @property
+    def llm(self) -> Optional[BaseLLM]:
+        """Get the LLM instance."""
+        return self._llm
+        
+    @llm.setter
+    def llm(self, value: BaseLLM) -> None:
+        """Set the LLM instance."""
+        self._llm = value
     
     @classmethod
     def from_dict(cls, config: Dict[str, Any]) -> 'LLMConfig':
@@ -37,6 +49,6 @@ class LLMConfig:
 # Default configuration
 DEFAULT_CONFIG = LLMConfig(
     llm_type='openai',
-    model_name='gpt-4',
+    model_name='gpt-4-turbo-preview',
     temperature=0.7,
 )

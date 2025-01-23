@@ -34,6 +34,10 @@ class LLMFactory:
         
         # Initialize the LLM
         llm.initialize()
+        
+        # Store the LLM instance in the config
+        config.llm = llm
+        
         return llm
 
     @classmethod

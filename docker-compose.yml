@@ -7,6 +7,9 @@ services:
       - "8100:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CEREBRAS_API_KEY=${CEREBRAS_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./containers/langgraph_soa:/app
     networks:
@@ -44,6 +47,7 @@ services:
       - ./containers/dev_container:/app
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+
     restart: unless-stopped
     networks:
       - rose_network

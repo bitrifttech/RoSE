@@ -102,3 +102,7 @@ class DeepSeekLLM(BaseLLM):
             messages,
             tools=tools
         )
+        
+    def get_model_name(self) -> str:
+        """Get the name of the model being used."""
+        return self.model_name

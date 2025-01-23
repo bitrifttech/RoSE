@@ -9,27 +9,43 @@ import logging
 import traceback
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
 from src.agent.graph import agent
+from src.llm.factory import LLMFactory
+from src.config.llm_config import LLMConfig, DEFAULT_CONFIG
 
 # Set up logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger(__name__)
+
+# Global variables
+chat_histories: Dict[str, List[Dict[str, str]]] = {}
+current_llm_config: LLMConfig = DEFAULT_CONFIG
+
+# Create LLM instance on startup
+LLMFactory.create_llm(current_llm_config)
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:8090", "http://localhost:3000"],  # Allow both dev and prod origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Global chat history store
-chat_histories: Dict[str, List[Dict[str, str]]] = {}
-
 class QueryInput(BaseModel):
     input: str
     session_id: str = "default"  # Add session ID to support multiple conversations
+
+class LLMConfigInput(BaseModel):
+    llm_type: str
+    model_name: str
+    temperature: float = 0.7
+    additional_params: Dict[str, Any] = None
 
 @app.get("/")
 def root():
@@ -41,6 +57,18 @@ async def run_agent(request: Request):
     try:
         # Get request data
         data = await request.json()
+        
+        # Generate request ID
+        request_id = os.urandom(4).hex()
+        
+        # Pass request ID to LLM if supported
+        if hasattr(current_llm_config.llm, 'set_request_id'):
+            current_llm_config.llm.set_request_id(request_id)
+        
+        # Log current LLM configuration
+        logger.info(f"[Request: {request_id}] 🚀 Starting request with LLM API: {current_llm_config.llm_type}, Model: {current_llm_config.model_name}")
+        
+        # Extract input and session ID
         user_input = data.get("input", "")
         session_id = data.get("session_id", "default")
         
@@ -143,8 +171,8 @@ async def run_agent(request: Request):
                 
                 serialized_messages.append(msg_dict)
             
-            logger.debug(f"Serialized messages: {json.dumps(serialized_messages, indent=2)}")
-            logger.debug(f"Chat history for session {session_id}: {json.dumps(chat_history, indent=2)}")
+            logger.debug(f"[Request: {request_id}] Serialized messages: {json.dumps(serialized_messages, indent=2)}")
+            logger.debug(f"[Request: {request_id}] Chat history for session {session_id}: {json.dumps(chat_history, indent=2)}")
             
             # Ensure we have at least one message in the response
             if not serialized_messages:
@@ -161,15 +189,15 @@ async def run_agent(request: Request):
             return JSONResponse(content=response)
             
         except Exception as e:
-            logger.error(f"Error in run_agent: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"[Request: {request_id}] Error in run_agent: {str(e)}")
+            logger.error(f"[Request: {request_id}] Traceback: {traceback.format_exc()}")
             return JSONResponse(
                 status_code=500,
                 content={"error": f"Agent error: {str(e)}"}
             )
             
     except Exception as e:
-        logger.error(f"Error processing request: {str(e)}")
+        logger.error(f"[Request: {request_id}] Error processing request: {str(e)}")
         return JSONResponse(
             status_code=400,
             content={"error": f"Invalid request: {str(e)}"}
@@ -178,6 +206,61 @@ async def run_agent(request: Request):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+@app.get("/api/llm/available")
+async def get_available_llms():
+    """Get available LLM APIs and their models."""
+    llm_info = {
+        'openai': {
+            'name': 'OpenAI',
+            'models': ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo-preview']
+        },
+        'anthropic': {
+            'name': 'Anthropic',
+            'models': ['claude-2.1', 'claude-3-opus', 'claude-3-sonnet']
+        },
+        'deepseek': {
+            'name': 'DeepSeek',
+            'models': ['deepseek-chat', 'deepseek-coder']
+        }
+    }
+    
+    return {
+        'available_llms': llm_info,
+        'current_config': current_llm_config.to_dict()
+    }
+
+@app.get("/api/llm/config")
+async def get_llm_config():
+    """Get current LLM configuration."""
+    return current_llm_config.to_dict()
+
+@app.post("/api/llm/config")
+async def update_llm_config(config: LLMConfigInput):
+    """Update LLM configuration."""
+    global current_llm_config
+    global agent
+    
+    try:
+        # Create new config
+        new_config = LLMConfig(
+            llm_type=config.llm_type,
+            model_name=config.model_name,
+            temperature=config.temperature,
+            additional_params=config.additional_params
+        )
+        
+        # Try to create LLM with new config to validate it
+        LLMFactory.create_llm(new_config)
+        
+        # If successful, update current config and recreate agent
+        current_llm_config = new_config
+        agent = agent.__class__(llm_config=current_llm_config)
+        
+        return {"status": "success", "config": current_llm_config.to_dict()}
+    except Exception as e:
+        logger.error(f"Error updating LLM config: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
