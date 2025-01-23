@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/rose_logo1.jpeg" alt="RoSE Logo" width="200"/>
+  <img src="containers/ux_container/public/rose_logo1.jpeg" alt="RoSE Logo" width="200"/>
 </p>
 
 # RoSE (Robotic Software Engineer)
