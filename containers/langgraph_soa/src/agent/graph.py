@@ -28,12 +28,7 @@ class AgentGraph:
     
     def __init__(self, llm_config=DEFAULT_CONFIG):
         """Initialize the agent graph with specified LLM configuration."""
-        self.llm = LLMFactory.create_llm(
-            llm_config.llm_type,
-            model_name=llm_config.model_name,
-            temperature=llm_config.temperature,
-            **(llm_config.additional_params or {})
-        )
+        self.llm = LLMFactory.create_llm(llm_config)
         self.tools = get_agent_tools()
         self.chat_histories: Dict[str, ChatMessageHistory] = {}
         

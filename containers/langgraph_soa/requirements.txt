@@ -6,4 +6,7 @@ langchain-core>=0.1.1
 langchain-openai>=0.0.2
 langgraph>=0.0.10
 langchain-community>=0.0.10
+langchain-anthropic>=0.0.1
+anthropic>=0.8.1
+requests>=2.31.0
 typing-extensions>=4.8.0
