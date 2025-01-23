@@ -2,6 +2,6 @@
 Agent module for LangGraph API
 """
 
-from src.agent.graph import graph
+from src.agent.graph import agent
 
-__all__ = ["graph"]
+__all__ = ["agent"]

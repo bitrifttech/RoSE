@@ -8,7 +8,7 @@ import json
 import logging
 import traceback
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
-from src.agent.graph import graph
+from src.agent.graph import agent
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -60,31 +60,40 @@ async def run_agent(request: Request):
             "session_id": session_id
         }
         
+        # Run the agent
         try:
-            # Run the agent with session ID in config
-            config = {"configurable": {"session_id": session_id}}
-            result = graph.invoke(state, config=config)
+            result = agent.run(state)
             
-            # Extract messages
-            messages = result.get("messages", [])
-            if not messages:
-                return JSONResponse(
-                    status_code=500,
-                    content={"error": "No response from agent"}
-                )
-            
-            # Get the last assistant message
-            last_assistant_msg = next(
-                (msg for msg in reversed(messages) 
-                 if isinstance(msg, AIMessage)), 
+            # Format the response
+            messages = result["messages"]
+            last_message = next(
+                (msg for msg in reversed(messages) if isinstance(msg, AIMessage)), 
                 None
             )
             
-            if not last_assistant_msg:
-                return JSONResponse(
-                    status_code=500,
-                    content={"error": "No assistant response found"}
-                )
+            # Extract tool calls and responses
+            tool_calls = []
+            current_tool_call = None
+            
+            for msg in messages:
+                if isinstance(msg, AIMessage):
+                    tool_calls_data = msg.additional_kwargs.get('tool_calls', [])
+                    for tc in tool_calls_data:
+                        current_tool_call = {
+                            'id': tc.get('id'),
+                            'name': tc.get('function', {}).get('name'),
+                            'arguments': tc.get('function', {}).get('arguments'),
+                            'response': None
+                        }
+                        tool_calls.append(current_tool_call)
+                elif isinstance(msg, ToolMessage) and current_tool_call and msg.tool_call_id == current_tool_call['id']:
+                    current_tool_call['response'] = msg.content
+            
+            response = {
+                'response': last_message.content if last_message else "No response generated",
+                'tool_calls': tool_calls,
+                'session_id': session_id
+            }
             
             # Update chat history
             chat_history = result.get("chat_history", [])
@@ -141,14 +150,15 @@ async def run_agent(request: Request):
             if not serialized_messages:
                 serialized_messages = [{
                     "role": "ai",
-                    "content": last_assistant_msg.content
+                    "content": last_message.content
                 }]
             
-            return JSONResponse(content={
-                "response": last_assistant_msg.content,
+            response.update({
                 "messages": serialized_messages,
                 "chat_history": chat_history
             })
+            
+            return JSONResponse(content=response)
             
         except Exception as e:
             logger.error(f"Error in run_agent: {str(e)}")

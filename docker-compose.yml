@@ -53,7 +53,7 @@ services:
       context: ./containers/ux_container
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"  # Map container port 8080 to host port 8090
+      - "8090:8080"  # Map container port 8080 to host port 8090
     volumes:
       - ./containers/ux_container:/app
       - /app/node_modules
