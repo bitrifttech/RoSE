@@ -11,6 +11,7 @@ const dotenv = require('dotenv');
 const openaiRoutes = require('./openai-routes');
 const morgan = require('morgan');
 const logger = require('./utils/logger');
+const archiver = require('archiver');
 
 // Load environment variables
 dotenv.config();
@@ -212,6 +213,34 @@ function createApp() {
         } catch (error) {
             logger.logError(error, req);
             res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // Download app directory as zip
+    app.get('/download/app', async (req, res) => {
+        try {
+            const archive = archiver('zip', {
+                zlib: { level: 9 } // Maximum compression
+            });
+
+            // Set the headers
+            res.attachment('app.zip');
+
+            // Pipe archive data to the response
+            archive.pipe(res);
+
+            // Add the directory to the archive
+            archive.directory(APP_DIR, false);
+
+            // Finalize the archive
+            await archive.finalize();
+
+            logger.info('App directory downloaded successfully');
+        } catch (error) {
+            logger.error('Error creating zip file', { error });
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Error creating zip file' });
+            }
         }
     });
 
