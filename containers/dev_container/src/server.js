@@ -234,32 +234,49 @@ function createApp() {
                 return res.status(400).json({ error: 'File must be a zip archive' });
             }
 
-            // Remove all existing files in the app directory
-            await fs.emptyDir(APP_DIR);
-            logger.info('Cleared app directory');
+            // Create a temporary directory for extraction
+            const tempDir = path.join(os.tmpdir(), 'app-upload-' + Date.now());
+            await fs.ensureDir(tempDir);
 
-            // Extract the zip file
-            const zip = new AdmZip(req.file.path);
-            zip.extractAllTo(APP_DIR, true);
+            try {
+                // Extract the zip file to temp directory first
+                const zip = new AdmZip(req.file.path);
+                zip.extractAllTo(tempDir, true);
 
-            // Fix permissions for node_modules/.bin
-            const binPath = path.join(APP_DIR, 'node_modules/.bin');
-            if (fs.existsSync(binPath)) {
-                await execAsync(`chmod -R 755 ${binPath}`);
-                logger.info('Fixed permissions for node_modules/.bin');
+                // Remove node_modules from app directory if it exists
+                const appNodeModules = path.join(APP_DIR, 'node_modules');
+                if (fs.existsSync(appNodeModules)) {
+                    await fs.remove(appNodeModules);
+                }
+
+                // Remove .next from app directory if it exists
+                const appNext = path.join(APP_DIR, '.next');
+                if (fs.existsSync(appNext)) {
+                    await fs.remove(appNext);
+                }
+
+                // Copy all files except node_modules from temp to app directory
+                await fs.copy(tempDir, APP_DIR, {
+                    filter: (src) => {
+                        const relativePath = path.relative(tempDir, src);
+                        return !relativePath.startsWith('node_modules') && 
+                               !relativePath.startsWith('.next');
+                    }
+                });
+
+                // Install dependencies
+                await execAsync('cd /usr/src/app/app && npm install', {
+                    env: { ...process.env, NODE_ENV: 'development' }
+                });
+                logger.info('Dependencies installed');
+
+                logger.info('App restored successfully');
+                res.json({ message: 'App restored successfully' });
+            } finally {
+                // Clean up temporary files
+                await fs.remove(tempDir);
+                fs.unlinkSync(req.file.path);
             }
-
-            // Install dependencies
-            await execAsync('cd /usr/src/app/app && npm install', {
-                env: { ...process.env, NODE_ENV: 'development' }
-            });
-            logger.info('Dependencies installed');
-
-            // Clean up the temporary file
-            fs.unlinkSync(req.file.path);
-
-            logger.info('App restored successfully');
-            res.json({ message: 'App restored successfully' });
         } catch (error) {
             logger.error('Error restoring app', { error });
             if (req.file) {
@@ -282,8 +299,34 @@ function createApp() {
             // Pipe archive data to the response
             archive.pipe(res);
 
-            // Add the directory to the archive
-            archive.directory(APP_DIR, false);
+            // Function to recursively add files
+            const addFilesToArchive = async (currentPath, relativePath = '') => {
+                const entries = await fs.readdir(currentPath, { withFileTypes: true });
+                
+                for (const entry of entries) {
+                    const fullPath = path.join(currentPath, entry.name);
+                    const archivePath = path.join(relativePath, entry.name);
+                    
+                    // Skip node_modules and .next directories
+                    if (entry.name === 'node_modules' || entry.name === '.next') {
+                        continue;
+                    }
+                    
+                    if (entry.isDirectory()) {
+                        await addFilesToArchive(fullPath, archivePath);
+                    } else {
+                        const stat = await fs.stat(fullPath);
+                        archive.append(fs.createReadStream(fullPath), {
+                            name: archivePath,
+                            date: stat.mtime,
+                            mode: stat.mode
+                        });
+                    }
+                }
+            };
+
+            // Start adding files from the app directory
+            await addFilesToArchive(APP_DIR);
 
             // Finalize the archive
             await archive.finalize();
