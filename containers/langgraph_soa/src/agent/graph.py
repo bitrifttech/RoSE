@@ -96,7 +96,6 @@ class AgentGraph:
                 
             # Create a list of tool configurations for the model
             tools_for_model = [{
-                "type": "function",
                 "function": {
                     "name": tool.name,
                     "description": tool.description,
@@ -214,7 +213,7 @@ class AgentGraph:
                     if not action or not tool_call_id:
                         logger.warning(f"Invalid tool call format: {tool_call}")
                         tool_msg = ToolMessage(
-                            content="Invalid tool call format",
+                            content="<tool_result>Invalid tool call format</tool_result>",
                             tool_call_id=tool_call_id or "unknown",
                             name=action or "unknown"
                         )
@@ -229,7 +228,7 @@ class AgentGraph:
                     except json.JSONDecodeError:
                         logger.error(f"Failed to parse tool arguments: {args_str}")
                         tool_msg = ToolMessage(
-                            content=f"Failed to parse tool arguments: {args_str}",
+                            content=f"<tool_result>Failed to parse tool arguments: {args_str}</tool_result>",
                             tool_call_id=tool_call_id,
                             name=action
                         )
@@ -245,31 +244,58 @@ class AgentGraph:
                         error_msg = f"Tool {action} not found"
                         logger.error(error_msg)
                         tool_msg = ToolMessage(
-                            content=error_msg,
+                            content=f"<tool_result>{error_msg}</tool_result>",
                             tool_call_id=tool_call_id,
                             name=action
                         )
                         new_messages.append(tool_msg)
                         chat_history.add_message(tool_msg)
                         continue
-
-                    result = tool_to_use._run(**args)
-                    logger.debug(f"Tool execution result: {result}")
-                    tool_msg = ToolMessage(
-                        content=str(result),
-                        tool_call_id=tool_call_id,
-                        name=action
-                    )
-                    new_messages.append(tool_msg)
-                    chat_history.add_message(tool_msg)
-                    
+                        
+                    try:
+                        # Execute tool and format result
+                        tool_result = tool_to_use.invoke(args)
+                        
+                        # Format tool result for Claude
+                        tool_msg = ToolMessage(
+                            content=tool_result,
+                            tool_call_id=tool_call_id,
+                            name=action,
+                            additional_kwargs={
+                                "type": "tool_result",
+                                "tool_use_id": tool_call_id,
+                                "content": tool_result
+                            }
+                        )
+                        
+                        new_messages.append(tool_msg)
+                        chat_history.add_message(tool_msg)
+                        logger.debug(f"Tool execution successful: {tool_result}")
+                        
+                    except Exception as e:
+                        error_msg = f"Error executing tool {action}: {str(e)}"
+                        logger.error(error_msg)
+                        tool_msg = ToolMessage(
+                            content=error_msg,
+                            tool_call_id=tool_call_id,
+                            name=action,
+                            additional_kwargs={
+                                "type": "tool_result",
+                                "tool_use_id": tool_call_id,
+                                "content": error_msg,
+                                "is_error": True
+                            }
+                        )
+                        new_messages.append(tool_msg)
+                        chat_history.add_message(tool_msg)
+                        
                 except Exception as e:
-                    error_msg = f"Error executing tool {action if 'action' in locals() else 'unknown'}: {str(e)}"
+                    error_msg = f"Error processing tool call: {str(e)}"
                     logger.error(error_msg, exc_info=True)
                     tool_msg = ToolMessage(
-                        content=error_msg,
-                        tool_call_id=tool_call_id if 'tool_call_id' in locals() else "unknown",
-                        name=action if 'action' in locals() else "unknown"
+                        content=f"<tool_result>Error: {error_msg}</tool_result>",
+                        tool_call_id=tool_call.get('id', 'unknown'),
+                        name=tool_call.get('function', {}).get('name', 'unknown')
                     )
                     new_messages.append(tool_msg)
                     chat_history.add_message(tool_msg)
@@ -277,20 +303,20 @@ class AgentGraph:
             # Ensure we have a response for each new tool call
             tool_call_ids = {tc.get('id') for tc in tool_calls if tc.get('id')}
             response_ids = {msg.tool_call_id for msg in new_messages if isinstance(msg, ToolMessage)}
-            missing_ids = tool_call_ids - response_ids - {msg.tool_call_id for msg in messages if isinstance(msg, ToolMessage)}
             
+            missing_ids = tool_call_ids - response_ids
             if missing_ids:
-                logger.warning(f"Missing tool responses for IDs: {missing_ids}")
-            
-            # Add error responses for any missing tool calls
-            for missing_id in missing_ids:
-                tool_msg = ToolMessage(
-                    content="Tool execution failed",
-                    tool_call_id=missing_id,
-                    name="unknown"
-                )
-                new_messages.append(tool_msg)
-                chat_history.add_message(tool_msg)
+                logger.warning(f"Missing responses for tool calls: {missing_ids}")
+                for missing_id in missing_ids:
+                    tool_call = next(tc for tc in tool_calls if tc.get('id') == missing_id)
+                    action = tool_call.get('function', {}).get('name', 'unknown')
+                    tool_msg = ToolMessage(
+                        content=f"<tool_result>No response received for tool call</tool_result>",
+                        tool_call_id=missing_id,
+                        name=action
+                    )
+                    new_messages.append(tool_msg)
+                    chat_history.add_message(tool_msg)
             
             logger.debug(f"Final message count: {len(messages + new_messages)}")
             # Return all messages including the original messages and new tool responses

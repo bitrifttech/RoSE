@@ -137,14 +137,28 @@ async def run_agent(request: Request):
             seen_contents = set()
             deduplicated_messages = []
             for msg in filtered_messages:
-                # Create a hashable key from message content and type
-                msg_key = (
-                    msg.__class__.__name__,
-                    msg.content,
-                    # Handle tool messages specially
-                    getattr(msg, 'tool_call_id', None) if isinstance(msg, ToolMessage) else None,
-                    getattr(msg, 'name', None) if isinstance(msg, ToolMessage) else None
-                )
+                # Handle content that might be a list (e.g., from Claude)
+                content = msg.content
+                if isinstance(content, list):
+                    content = json.dumps(content, sort_keys=True)
+                
+                # For tool messages, include tool-specific fields in the key
+                if isinstance(msg, ToolMessage):
+                    msg_key = (
+                        msg.__class__.__name__,
+                        content,
+                        msg.tool_call_id,
+                        msg.name,
+                        # Convert any unhashable types to strings for the key
+                        json.dumps(msg.additional_kwargs, sort_keys=True) if msg.additional_kwargs else None
+                    )
+                else:
+                    msg_key = (
+                        msg.__class__.__name__,
+                        content,
+                        # Convert any unhashable types to strings for the key
+                        json.dumps(msg.additional_kwargs, sort_keys=True) if msg.additional_kwargs else None
+                    )
                 
                 if msg_key not in seen_contents:
                     seen_contents.add(msg_key)
