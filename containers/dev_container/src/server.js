@@ -12,6 +12,10 @@ const openaiRoutes = require('./openai-routes');
 const morgan = require('morgan');
 const logger = require('./utils/logger');
 const archiver = require('archiver');
+const multer = require('multer');
+const AdmZip = require('adm-zip');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 
 // Load environment variables
 dotenv.config();
@@ -83,6 +87,7 @@ function createApp() {
     // Constants
     const APP_DIR = path.join(__dirname, '../app');
     const WORKSPACE_DIR = APP_DIR;
+    const upload = multer({ dest: os.tmpdir() });
 
     // Ensure app directory exists
     fs.ensureDirSync(APP_DIR);
@@ -213,6 +218,54 @@ function createApp() {
         } catch (error) {
             logger.logError(error, req);
             res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // Upload and restore app
+    app.post('/upload/app', upload.single('file'), async (req, res) => {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ error: 'No file uploaded' });
+            }
+
+            // Check if it's a zip file
+            if (!req.file.originalname.endsWith('.zip')) {
+                fs.unlinkSync(req.file.path);
+                return res.status(400).json({ error: 'File must be a zip archive' });
+            }
+
+            // Remove all existing files in the app directory
+            await fs.emptyDir(APP_DIR);
+            logger.info('Cleared app directory');
+
+            // Extract the zip file
+            const zip = new AdmZip(req.file.path);
+            zip.extractAllTo(APP_DIR, true);
+
+            // Fix permissions for node_modules/.bin
+            const binPath = path.join(APP_DIR, 'node_modules/.bin');
+            if (fs.existsSync(binPath)) {
+                await execAsync(`chmod -R 755 ${binPath}`);
+                logger.info('Fixed permissions for node_modules/.bin');
+            }
+
+            // Install dependencies
+            await execAsync('cd /usr/src/app/app && npm install', {
+                env: { ...process.env, NODE_ENV: 'development' }
+            });
+            logger.info('Dependencies installed');
+
+            // Clean up the temporary file
+            fs.unlinkSync(req.file.path);
+
+            logger.info('App restored successfully');
+            res.json({ message: 'App restored successfully' });
+        } catch (error) {
+            logger.error('Error restoring app', { error });
+            if (req.file) {
+                fs.unlinkSync(req.file.path);
+            }
+            res.status(500).json({ error: 'Failed to restore app' });
         }
     });
 

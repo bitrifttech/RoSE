@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Upload } from "lucide-react";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Terminal from "@/components/Terminal";
@@ -23,7 +23,7 @@ import { EditorSettingsPanel } from "@/components/EditorSettingsPanel";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { downloadApp } from "@/lib/api";
+import { downloadApp, uploadApp } from "@/lib/api";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -311,6 +311,27 @@ console.log("Hello, World!");`);
     }
   }, [activeTabId, openTabs]);
 
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await uploadApp(file);
+      toast({
+        title: "Success",
+        description: "App restored successfully",
+      });
+      // Clear the input value so the same file can be uploaded again
+      event.target.value = '';
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to restore app",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     return () => {
       if (shellSocket) {
@@ -352,6 +373,21 @@ console.log("Hello, World!");`);
               Shell {isConnected ? "Connected" : "Disconnected"}
             </span>
           </div>
+          <input
+            type="file"
+            accept=".zip"
+            onChange={handleUpload}
+            className="hidden"
+            id="app-upload"
+          />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => document.getElementById('app-upload')?.click()}
+            title="Upload Project"
+          >
+            <Upload className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+          </Button>
           <Button
             variant="outline"
             size="icon"

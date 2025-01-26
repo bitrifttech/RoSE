@@ -194,3 +194,18 @@ export async function getServerStatus(): Promise<{ running: boolean }> {
 export async function downloadApp(): Promise<void> {
   window.location.href = `${DEV_CONTAINER_URL}/download/app`;
 }
+
+export async function uploadApp(file: File): Promise<void> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(`${DEV_CONTAINER_URL}/upload/app`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to upload app');
+  }
+}
