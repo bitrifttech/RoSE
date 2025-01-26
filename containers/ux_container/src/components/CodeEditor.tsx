@@ -103,6 +103,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       lineHeight: settings.lineHeight || 1.5,
       minimap: { enabled: settings.minimap },
       wordWrap: settings.wordWrap ? 'on' : 'off',
+      lineNumbers: settings.lineNumbers ? 'on' : 'off',
       theme: document.documentElement.classList.contains('dark') ? 'customDark' : 'vs',
       roundedSelection: true,
       scrollBeyondLastLine: false,
@@ -190,6 +191,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
         minimap: { enabled: settings.minimap },
         wordWrap: settings.wordWrap ? "on" : "off",
         fontSize: settings.fontSize,
+        lineNumbers: settings.lineNumbers ? "on" : "off",
       });
     }
   }, [settings]);

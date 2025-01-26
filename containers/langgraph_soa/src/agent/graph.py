@@ -258,13 +258,13 @@ class AgentGraph:
                         
                         # Format tool result for Claude
                         tool_msg = ToolMessage(
-                            content=tool_result,
+                            content=str(tool_result),  # Ensure content is string
                             tool_call_id=tool_call_id,
                             name=action,
                             additional_kwargs={
                                 "type": "tool_result",
                                 "tool_use_id": tool_call_id,
-                                "content": tool_result
+                                "content": str(tool_result)  # Ensure content is string
                             }
                         )
                         

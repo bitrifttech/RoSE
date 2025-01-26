@@ -82,7 +82,11 @@ const Chat = () => {
         // Add all messages from the conversation
         const newMessages: Message[] = data.messages.map((msg: any) => ({
           id: Date.now() + Math.random(),
-          text: msg.content,
+          text: typeof msg.content === 'string' ? msg.content : 
+                Array.isArray(msg.content) ? msg.content.map((block: any) => 
+                  block.type === 'text' ? block.text : ''
+                ).join('') :
+                JSON.stringify(msg.content),
           sender: msg.role === "human" ? "user" : 
                  msg.role === "system" ? "system" : 
                  msg.role === "tool" ? "tool" : "assistant",

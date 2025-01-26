@@ -1,6 +1,7 @@
 from typing import List, Dict, Any
 import os
 import logging
+import json
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage
 
@@ -48,7 +49,7 @@ class AnthropicLLM(BaseLLM):
         logger.debug(f"Formatted tools for Anthropic: {formatted_tools}")
         return formatted_tools
         
-    def _format_messages_for_anthropic(self, messages: List[BaseMessage]) -> List[BaseMessage]:
+    def _format_messages_for_anthropic(self, messages: List[BaseMessage]) -> List[Dict[str, Any]]:
         """Format messages to match Anthropic's expected schema."""
         formatted_messages = []
         
@@ -57,23 +58,55 @@ class AnthropicLLM(BaseLLM):
                 # Format tool message as a user message with tool_result content
                 formatted_msg = {
                     "role": "user",
-                    "content": [{
-                        "type": "tool_result",
-                        "tool_use_id": msg.tool_call_id,
-                        "content": msg.content
-                    }]
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": msg.tool_call_id,
+                            "content": str(msg.content)  # Ensure content is string
+                        }
+                    ]
                 }
                 if msg.additional_kwargs.get("is_error"):
                     formatted_msg["content"][0]["is_error"] = True
-            else:
-                # Keep other messages as is
+            elif isinstance(msg, AIMessage):
+                # Handle AI messages with tool calls
+                content_blocks = []
+                
+                # Add text content if present
+                if msg.content:
+                    content_blocks.append({"type": "text", "text": str(msg.content)})
+                
+                # Add tool calls if present
+                if msg.additional_kwargs.get("tool_calls"):
+                    for tool_call in msg.additional_kwargs["tool_calls"]:
+                        tool_use = {
+                            "type": "tool_use",
+                            "id": tool_call["id"],
+                            "name": tool_call["name"],
+                            "input": json.loads(tool_call["function"]["arguments"])
+                        }
+                        content_blocks.append(tool_use)
+                
                 formatted_msg = {
-                    "role": msg.__class__.__name__.replace("Message", "").lower(),
-                    "content": msg.content
+                    "role": "assistant",  # Claude expects 'assistant' not 'ai'
+                    "content": content_blocks
+                }
+            else:
+                # Format regular messages (system, human)
+                role = msg.__class__.__name__.replace("Message", "").lower()
+                # Map 'system' and 'human' roles correctly
+                if role == "system":
+                    role = "system"
+                elif role == "human":
+                    role = "user"
+                
+                formatted_msg = {
+                    "role": role,
+                    "content": [{"type": "text", "text": str(msg.content)}]
                 }
             formatted_messages.append(formatted_msg)
             
-        logger.debug(f"Formatted messages: {formatted_messages}")
+        logger.debug(f"Formatted messages for Anthropic: {formatted_messages}")
         return formatted_messages
         
     def initialize(self) -> None:
@@ -106,8 +139,24 @@ class AnthropicLLM(BaseLLM):
             formatted_tools = self._format_tools_for_anthropic(tools)
             logger.debug(f"{log_prefix} Using tools: {formatted_tools}")
             
-        # Format messages to ensure tool results are properly ordered
-        formatted_messages = self._format_messages_for_anthropic(messages)
+        # Pre-process messages to handle system messages
+        processed_messages = []
+        system_message = None
+        
+        # First pass: collect system message and clean history
+        for msg in messages:
+            if msg.type == "system":
+                # Keep only the last system message
+                system_message = msg
+            else:
+                processed_messages.append(msg)
+        
+        # Add system message at the beginning if present
+        if system_message:
+            processed_messages.insert(0, system_message)
+            
+        # Format messages for Anthropic
+        formatted_messages = self._format_messages_for_anthropic(processed_messages)
         logger.debug(f"{log_prefix} Formatted messages: {formatted_messages}")
             
         try:
@@ -115,7 +164,34 @@ class AnthropicLLM(BaseLLM):
                 formatted_messages,
                 tools=formatted_tools
             )
+            
+            # Extract text content from response
+            if isinstance(response.content, list):
+                # For structured responses with multiple content blocks
+                text_content = ""
+                tool_calls = []
+                
+                for block in response.content:
+                    if block.get("type") == "text":
+                        text_content += block.get("text", "")
+                    elif block.get("type") == "tool_use":
+                        tool_calls.append({
+                            "id": block.get("id"),
+                            "name": block.get("name"),
+                            "function": {
+                                "name": block.get("name"),
+                                "arguments": json.dumps(block.get("input", {}))
+                            }
+                        })
+                
+                # Create AIMessage with proper content
+                response = AIMessage(
+                    content=text_content,
+                    additional_kwargs={"tool_calls": tool_calls} if tool_calls else {}
+                )
+            
             return response
+            
         except Exception as e:
             logger.error(f"{log_prefix} Error in Anthropic API call: {str(e)}")
             raise
