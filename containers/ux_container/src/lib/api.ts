@@ -1,6 +1,7 @@
 // Use the proxy configured in vite.config.ts
 const BASE_URL = '/files';
 const SERVER_URL = '/server';
+const DEV_CONTAINER_URL = '/dev_container';
 
 export interface FileItem {
   name: string;
@@ -188,4 +189,8 @@ export async function getServerStatus(): Promise<{ running: boolean }> {
     console.error('Status check error:', error);
     return { running: false };
   }
+}
+
+export async function downloadApp(): Promise<void> {
+  window.location.href = `${DEV_CONTAINER_URL}/download/app`;
 }

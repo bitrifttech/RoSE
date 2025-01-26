@@ -34,6 +34,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/dev_container': {
+        target: 'http://dev_container:4000',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/dev_container/, ''),
+      },
       '/api': {
         target: 'http://container-orchestrator:8080',
         changeOrigin: true,

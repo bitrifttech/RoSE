@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Terminal from "@/components/Terminal";
@@ -23,6 +23,7 @@ import { EditorSettingsPanel } from "@/components/EditorSettingsPanel";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { downloadApp } from "@/lib/api";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -351,6 +352,14 @@ console.log("Hello, World!");`);
               Shell {isConnected ? "Connected" : "Disconnected"}
             </span>
           </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => downloadApp()}
+            title="Download Project"
+          >
+            <Download className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
