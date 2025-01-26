@@ -49,6 +49,6 @@ class LLMConfig:
 # Default configuration
 DEFAULT_CONFIG = LLMConfig(
     llm_type='openai',
-    model_name='gpt-4-turbo-preview',
+    model_name='gpt-4o-mini',
     temperature=0.7,
 )

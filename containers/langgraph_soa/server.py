@@ -213,7 +213,7 @@ async def get_available_llms():
     llm_info = {
         'openai': {
             'name': 'OpenAI',
-            'models': ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo-preview']
+            'models': ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo']
         },
         'anthropic': {
             'name': 'Anthropic',
@@ -221,7 +221,7 @@ async def get_available_llms():
         },
         'deepseek': {
             'name': 'DeepSeek',
-            'models': ['deepseek-chat', 'deepseek-coder']
+            'models': ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner']
         }
     }
     
