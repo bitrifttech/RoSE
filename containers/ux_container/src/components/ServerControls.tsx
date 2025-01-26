@@ -70,12 +70,12 @@ export function ServerControls({ className = '' }: { className?: string }) {
         {isRunning ? (
           <>
             <Square className="h-4 w-4" />
-            Stop Server
+            Stop Dev Server
           </>
         ) : (
           <>
             <Play className="h-4 w-4" />
-            Start Server
+            Start Dev Server
           </>
         )}
       </Button>

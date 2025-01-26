@@ -107,8 +107,8 @@ export async function startServer(): Promise<void> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      command: 'node',
-      args: ['server.js'],
+      command: 'npm',
+      args: ['run', 'dev', '--', '--port', '8080'],
       cwd: '/app'  // Use the container's app directory
     }),
   });
