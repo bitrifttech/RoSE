@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const fetch = require('node-fetch');
 const projectService = require('../services/project');
 
 // Get all projects
@@ -80,6 +81,37 @@ router.post('/:id/versions/:versionId/load', async (req, res) => {
     res.json(version);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Save project files
+router.post('/:id/save-files', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Download zip from dev_container
+    const devContainerResponse = await fetch('http://dev_container:4000/download/app');
+    
+    if (!devContainerResponse.ok) {
+      throw new Error(`Failed to download app files from dev container: ${devContainerResponse.status} ${devContainerResponse.statusText}`);
+    }
+    
+    // Get zip content as buffer
+    const zipContent = await devContainerResponse.buffer();
+    
+    // Return info about the downloaded zip
+    res.json({
+      success: true,
+      downloadedFromDevContainer: true,
+      zipSizeBytes: zipContent.length,
+      projectId: id,
+      contentType: devContainerResponse.headers.get('content-type'),
+      filename: devContainerResponse.headers.get('content-disposition'),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error saving project files:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
