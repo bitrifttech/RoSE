@@ -1,6 +1,7 @@
 const express = require('express');
 const Docker = require('dockerode');
 const cors = require('cors');
+const prisma = require('./src/services/prisma');
 
 const userRoutes = require('./src/routes/user');
 const projectRoutes = require('./src/routes/project');
@@ -8,11 +9,6 @@ const projectRoutes = require('./src/routes/project');
 const app = express();
 const PORT = 8080;
 const docker = new Docker();
-
-// Test route
-app.get('/test', (req, res) => {
-  res.json({ message: 'Server is working' });
-});
 
 // Debug middleware
 app.use((req, res, next) => {
@@ -28,6 +24,11 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
+
+// Test route
+app.get('/test', (req, res) => {
+  res.json({ message: 'Server is working' });
+});
 
 // Legacy container management routes
 
@@ -253,6 +254,20 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Wait for database connection before starting server
+async function startServer() {
+  try {
+    // Test database connection
+    await prisma.$connect();
+    console.log('Successfully connected to database');
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to connect to database:', error);
+    process.exit(1);
+  }
+}
+
+startServer();

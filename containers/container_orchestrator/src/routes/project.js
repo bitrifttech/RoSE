@@ -87,7 +87,8 @@ router.post('/:id/versions/:versionId/load', async (req, res) => {
 // Save project files
 router.post('/:id/save-files', async (req, res) => {
   try {
-    const { id } = req.params;
+    const projectId = parseInt(req.params.id);
+    const { message } = req.body; // Optional commit message
     
     // Download zip from dev_container
     const devContainerResponse = await fetch('http://dev_container:4000/download/app');
@@ -99,15 +100,19 @@ router.post('/:id/save-files', async (req, res) => {
     // Get zip content as buffer
     const zipContent = await devContainerResponse.buffer();
     
-    // Return info about the downloaded zip
+    // Save to database
+    const version = await projectService.createProjectVersion(projectId, zipContent, message);
+    
+    // Return info about the saved version
     res.json({
       success: true,
       downloadedFromDevContainer: true,
       zipSizeBytes: zipContent.length,
-      projectId: id,
-      contentType: devContainerResponse.headers.get('content-type'),
-      filename: devContainerResponse.headers.get('content-disposition'),
-      timestamp: new Date().toISOString()
+      projectId: projectId,
+      versionId: version.id,
+      versionNumber: version.version,
+      message: version.message,
+      timestamp: version.createdAt
     });
   } catch (error) {
     console.error('Error saving project files:', error);
