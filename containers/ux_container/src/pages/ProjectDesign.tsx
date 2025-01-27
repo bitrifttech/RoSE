@@ -14,7 +14,7 @@ import { ContainerControls } from "@/components/ContainerControls";
 import { ContainerList } from "@/components/ContainerList";
 import { Container } from "@/types/container";
 import { debounce } from "@/utils/debounce";
-import { updateFile } from "@/lib/api";
+import { updateFile, getProject, Project } from "@/lib/api";
 import EditorTabs from "@/components/EditorTabs";
 import { createEditorTab, getLanguageFromPath } from "@/utils/editor";
 import { PreviewWindow } from "@/components/PreviewWindow";
@@ -48,6 +48,26 @@ console.log("Hello, World!");`);
   const [isContainerRunning, setIsContainerRunning] = useState(false);
   const [showContainerInfo, setShowContainerInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
+
+  useEffect(() => {
+    if (id) {
+      console.log('Loading project with ID:', id);
+      getProject(parseInt(id))
+        .then(project => {
+          console.log('Loaded project:', project);
+          setProject(project);
+        })
+        .catch(error => {
+          console.error('Failed to load project:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load project details",
+            variant: "destructive",
+          });
+        });
+    }
+  }, [id, toast]);
 
   const refreshContainers = useCallback(async () => {
     try {
@@ -359,8 +379,10 @@ console.log("Hello, World!");`);
             <ArrowLeft className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
           </Button>
           <div className="flex flex-col">
-            <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">Rose Project</h1>
-            <p className="text-xs text-[#4a5d7e]/70 dark:text-white/50">Development Environment</p>
+            <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">{project?.name || 'Loading...'}</h1>
+            {project?.description && (
+              <p className="text-xs text-[#4a5d7e]/70 dark:text-white/50">{project.description}</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-4">

@@ -69,7 +69,7 @@ app.get('/', (req, res) => {
         // Function to refresh container list
         async function refreshContainers() {
           try {
-            const response = await fetch('/containers');
+            const response = await fetch('/api/containers');
             if (!response.ok) {
               throw new Error('Failed to fetch containers');
             }
@@ -103,7 +103,7 @@ app.get('/', (req, res) => {
         // Start Container
         document.getElementById('start-btn').addEventListener('click', async () => {
           try {
-            const response = await fetch('/container', { method: 'POST' });
+            const response = await fetch('/api/container', { method: 'POST' });
             if (!response.ok) {
               throw new Error('Failed to start container');
             }
@@ -123,7 +123,7 @@ app.get('/', (req, res) => {
         document.getElementById('stop-btn').addEventListener('click', async () => {
           if (!containerId) return;
           try {
-            const response = await fetch('/container/' + containerId, { 
+            const response = await fetch('/api/container/' + containerId, { 
               method: 'DELETE'
             });
             if (!response.ok) {
@@ -145,8 +145,38 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Route: POST /container - Create and start the container
-app.post('/container', async (req, res) => {
+// Route: GET /api/containers - List all running dev_container containers
+app.get('/api/containers', async (req, res) => {
+  try {
+    // Get all containers
+    const containers = await docker.listContainers({
+      all: false,  // only running containers
+      filters: JSON.stringify({
+        ancestor: ['rose-dev_container:latest']
+      })
+    });
+
+    // Map container data to a more friendly format
+    const containerList = containers.map(container => ({
+      id: container.Id,
+      name: container.Names[0].replace(/^\//, ''),
+      status: container.Status,
+      ports: container.Ports.map(port => ({
+        internal: port.PrivatePort,
+        external: port.PublicPort
+      })),
+      created: container.Created
+    }));
+
+    return res.json(containerList);
+  } catch (error) {
+    console.error('Error listing containers:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Route: POST /api/container - Create and start the container
+app.post('/api/container', async (req, res) => {
   try {
     // Create a new Docker container (adjust parameters as needed)
     const container = await docker.createContainer({
@@ -195,8 +225,8 @@ app.post('/container', async (req, res) => {
   }
 });
 
-// Route: DELETE /container/:containerId - Stop and remove the container
-app.delete('/container/:containerId', async (req, res) => {
+// Route: DELETE /api/container/:containerId - Stop and remove the container
+app.delete('/api/container/:containerId', async (req, res) => {
   const { containerId } = req.params;
   try {
     const container = docker.getContainer(containerId);
@@ -207,36 +237,6 @@ app.delete('/container/:containerId', async (req, res) => {
     return res.json({ message: `Container ${containerId} stopped and removed.` });
   } catch (error) {
     console.error(`Error stopping/removing container ${containerId}:`, error);
-    return res.status(500).json({ error: error.message });
-  }
-});
-
-// Route: GET /containers - List all running dev_container containers
-app.get('/containers', async (req, res) => {
-  try {
-    // Get all containers
-    const containers = await docker.listContainers({
-      all: false,  // only running containers
-      filters: JSON.stringify({
-        ancestor: ['rose-dev_container:latest']
-      })
-    });
-
-    // Map container data to a more friendly format
-    const containerList = containers.map(container => ({
-      id: container.Id,
-      name: container.Names[0].replace(/^\//, ''),
-      status: container.Status,
-      ports: container.Ports.map(port => ({
-        internal: port.PrivatePort,
-        external: port.PublicPort
-      })),
-      created: container.Created
-    }));
-
-    return res.json(containerList);
-  } catch (error) {
-    console.error('Error listing containers:', error);
     return res.status(500).json({ error: error.message });
   }
 });

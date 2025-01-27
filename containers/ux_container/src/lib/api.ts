@@ -2,12 +2,48 @@
 const BASE_URL = '/files';
 const SERVER_URL = '/server';
 const DEV_CONTAINER_URL = '/dev_container';
+const API_URL = '/api';
 
 export interface FileItem {
   name: string;
   isDirectory: boolean;
   size: number;
   modified: string;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  description: string | null;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
+  containerId: string | null;
+}
+
+export interface Container {
+  id: string;
+  name: string;
+  status: string;
+  ports: Array<{
+    internal: number;
+    external: number;
+  }>;
+  created: number;
+}
+
+export async function getProject(id: number): Promise<Project> {
+  console.log('Fetching project:', id);
+  const response = await fetch(`/api/projects/${id}`);
+  console.log('Project response:', response.status, response.statusText);
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Project error response:', errorText);
+    throw new Error(`Failed to get project: ${response.status} ${response.statusText}`);
+  }
+  const data = await response.json();
+  console.log('Project data:', data);
+  return data;
 }
 
 export async function listFiles(path: string): Promise<FileItem[]> {
@@ -215,5 +251,32 @@ export async function uploadApp(file: File): Promise<void> {
 
   if (!response.ok) {
     throw new Error('Failed to upload app');
+  }
+}
+
+export async function listContainers(): Promise<Container[]> {
+  const response = await fetch('/api/containers');
+  if (!response.ok) {
+    throw new Error('Failed to fetch containers');
+  }
+  return response.json();
+}
+
+export async function startContainer(): Promise<{ containerId: string }> {
+  const response = await fetch('/api/container', {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to start container');
+  }
+  return response.json();
+}
+
+export async function stopContainer(containerId: string): Promise<void> {
+  const response = await fetch(`/api/container/${containerId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to stop container');
   }
 }
