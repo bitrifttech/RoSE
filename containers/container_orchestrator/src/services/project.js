@@ -213,6 +213,37 @@ class ProjectService {
 
     return version;
   }
+
+  async getProjectVersions(projectId) {
+    // First verify the project exists
+    const project = await prisma.project.findUnique({
+      where: { 
+        id: parseInt(projectId) 
+      }
+    });
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Get all versions for this project, excluding zipContent
+    return prisma.projectVersion.findMany({
+      where: {
+        projectId: parseInt(projectId)
+      },
+      select: {
+        id: true,
+        version: true,
+        message: true,
+        createdAt: true,
+        isActive: true,
+        projectId: true
+      },
+      orderBy: {
+        version: 'desc'
+      }
+    });
+  }
 }
 
 module.exports = new ProjectService();

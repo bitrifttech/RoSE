@@ -33,6 +33,25 @@ router.get('/user/:userId', async (req, res) => {
   }
 });
 
+// Get project versions
+router.get('/:id/versions', async (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    console.log(`[DEBUG] Getting versions for project ${projectId}`);
+    
+    // Get versions using the new service method
+    const versions = await projectService.getProjectVersions(projectId);
+    res.json(versions);
+    
+  } catch (error) {
+    console.error('Error in versions route:', error);
+    if (error.message === 'Project not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get project by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -43,37 +62,6 @@ router.get('/:id', async (req, res) => {
     res.json(project);
   } catch (error) {
     res.status(400).json({ error: error.message });
-  }
-});
-
-// Get project versions
-router.get('/:id/versions', (req, res) => {
-  try {
-    const projectId = parseInt(req.params.id);
-    console.log(`[DEBUG] Getting versions for project ${projectId}`);
-    
-    // Return dummy data for testing
-    const versions = [
-      {
-        id: 1,
-        version: 1,
-        message: "Initial version",
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        isActive: false
-      },
-      {
-        id: 2,
-        version: 2,
-        message: "Added new features",
-        createdAt: new Date(Date.now() - 3600000).toISOString(),
-        isActive: true
-      }
-    ];
-    
-    res.json(versions);
-  } catch (error) {
-    console.error('Error in versions route:', error);
-    res.status(500).json({ error: error.message });
   }
 });
 
