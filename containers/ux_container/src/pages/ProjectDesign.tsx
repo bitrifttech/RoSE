@@ -361,7 +361,7 @@ console.log("Hello, World!");`);
       const version = await saveProject(parseInt(id), message);
       toast({
         title: "Success",
-        description: `Project saved as version ${version.version}`,
+        description: `Project saved as version ${version.versionNumber} - "${version.message}"`,
       });
     } catch (error) {
       console.error('Failed to save project:', error);
