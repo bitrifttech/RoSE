@@ -55,11 +55,11 @@ services:
     networks:
       - rose_network
 
-  rose_dev_container:
+  dev_container:
     build:
       context: ./containers/dev_container
       dockerfile: Dockerfile
-    image: rose_dev_container
+    image: rose-dev_container
     ports:
       - "8010:8010"  # Terminal websocket
       - "8020:8020"  # File operations

@@ -17,7 +17,7 @@ class ProjectService {
     try {
       // Create dev container
       const container = await docker.createContainer({
-        Image: 'rose_dev_container',
+        Image: 'rose-dev_container',
         name: `rose_dev_${project.id}`,
         Env: [
           `PROJECT_ID=${project.id}`,
