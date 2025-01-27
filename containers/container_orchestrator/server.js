@@ -1,9 +1,35 @@
 const express = require('express');
 const Docker = require('dockerode');
+const cors = require('cors');
+
+const userRoutes = require('./src/routes/user');
+const projectRoutes = require('./src/routes/project');
 
 const app = express();
 const PORT = 8080;
 const docker = new Docker();
+
+// Test route
+app.get('/test', (req, res) => {
+  res.json({ message: 'Server is working' });
+});
+
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`[DEBUG] ${req.method} ${req.path}`);
+  next();
+});
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/projects', projectRoutes);
+
+// Legacy container management routes
 
 // Route: Serves a simple HTML page at "/"
 app.get('/', (req, res) => {
@@ -215,7 +241,18 @@ app.get('/containers', async (req, res) => {
   }
 });
 
-// Start the server
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('[ERROR]', err);
+  res.status(500).json({ error: err.message });
+});
+
+// 404 handler
+app.use((req, res) => {
+  console.log('[404] Not Found:', req.method, req.path);
+  res.status(404).json({ error: 'Not Found' });
+});
+
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
