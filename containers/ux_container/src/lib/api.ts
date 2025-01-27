@@ -32,6 +32,15 @@ export interface Container {
   created: number;
 }
 
+export interface ProjectVersion {
+  id: number;
+  projectId: number;
+  version: number;
+  message: string | null;
+  createdAt: string;
+  isActive: boolean;
+}
+
 export async function getProject(id: number): Promise<Project> {
   console.log('Fetching project:', id);
   const response = await fetch(`/api/projects/${id}`);
@@ -279,4 +288,21 @@ export async function stopContainer(containerId: string): Promise<void> {
   if (!response.ok) {
     throw new Error('Failed to stop container');
   }
+}
+
+export async function saveProject(projectId: number, message?: string): Promise<ProjectVersion> {
+  const response = await fetch(`${API_URL}/projects/${projectId}/save-files`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to save project: ${errorText}`);
+  }
+
+  return response.json();
 }

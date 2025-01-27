@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Upload } from "lucide-react";
+import { ArrowLeft, Download, Upload, Save } from "lucide-react";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Terminal from "@/components/Terminal";
@@ -14,7 +14,7 @@ import { ContainerControls } from "@/components/ContainerControls";
 import { ContainerList } from "@/components/ContainerList";
 import { Container } from "@/types/container";
 import { debounce } from "@/utils/debounce";
-import { updateFile, getProject, Project } from "@/lib/api";
+import { updateFile, getProject, Project, saveProject } from "@/lib/api";
 import EditorTabs from "@/components/EditorTabs";
 import { createEditorTab, getLanguageFromPath } from "@/utils/editor";
 import { PreviewWindow } from "@/components/PreviewWindow";
@@ -24,6 +24,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadApp, uploadApp } from "@/lib/api";
+import { SaveProjectDialog } from "@/components/SaveProjectDialog";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -49,6 +50,7 @@ console.log("Hello, World!");`);
   const [showContainerInfo, setShowContainerInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [project, setProject] = useState<Project | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -352,6 +354,25 @@ console.log("Hello, World!");`);
     }
   };
 
+  const handleSaveProject = useCallback(async (message: string) => {
+    if (!id) return;
+
+    try {
+      const version = await saveProject(parseInt(id), message);
+      toast({
+        title: "Success",
+        description: `Project saved as version ${version.version}`,
+      });
+    } catch (error) {
+      console.error('Failed to save project:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save project",
+        variant: "destructive",
+      });
+    }
+  }, [id, toast]);
+
   useEffect(() => {
     return () => {
       if (shellSocket) {
@@ -417,6 +438,14 @@ console.log("Hello, World!");`);
             title="Download Project"
           >
             <Download className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowSaveDialog(true)}
+            title="Save Project"
+          >
+            <Save className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
           </Button>
           <Button
             variant="ghost"
@@ -609,6 +638,11 @@ console.log("Hello, World!");`);
       {showSettings && (
         <EditorSettingsPanel onClose={() => setShowSettings(false)} /> 
       )}
+      <SaveProjectDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        onSave={handleSaveProject}
+      />
     </div>
   );
 };
