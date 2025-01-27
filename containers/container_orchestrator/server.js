@@ -13,6 +13,9 @@ const docker = new Docker();
 // Debug middleware
 app.use((req, res, next) => {
   console.log(`[DEBUG] ${req.method} ${req.path}`);
+  console.log('[DEBUG] Request headers:', req.headers);
+  console.log('[DEBUG] Request params:', req.params);
+  console.log('[DEBUG] Request query:', req.query);
   next();
 });
 

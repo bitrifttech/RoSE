@@ -3,6 +3,16 @@ const router = express.Router();
 const fetch = require('node-fetch');
 const projectService = require('../services/project');
 
+// Debug middleware for this router
+router.use((req, res, next) => {
+  console.log('[PROJECT ROUTER] Handling request:', {
+    method: req.method,
+    path: req.path,
+    params: req.params
+  });
+  next();
+});
+
 // Get all projects
 router.get('/', async (req, res) => {
   try {
@@ -33,6 +43,37 @@ router.get('/:id', async (req, res) => {
     res.json(project);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Get project versions
+router.get('/:id/versions', (req, res) => {
+  try {
+    const projectId = parseInt(req.params.id);
+    console.log(`[DEBUG] Getting versions for project ${projectId}`);
+    
+    // Return dummy data for testing
+    const versions = [
+      {
+        id: 1,
+        version: 1,
+        message: "Initial version",
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        isActive: false
+      },
+      {
+        id: 2,
+        version: 2,
+        message: "Added new features",
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        isActive: true
+      }
+    ];
+    
+    res.json(versions);
+  } catch (error) {
+    console.error('Error in versions route:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
