@@ -25,6 +25,7 @@ import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadApp, uploadApp } from "@/lib/api";
 import { SaveProjectDialog } from "@/components/SaveProjectDialog";
+import { ProjectVersionsDialog } from "@/components/ProjectVersionsDialog";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -389,8 +390,8 @@ console.log("Hello, World!");`);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#1a1f2c] dark:via-[#1f2937] dark:to-[#2d1f2f]">
-      <div className="flex items-center justify-between p-3 border-b border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 backdrop-blur-md dark:bg-black/10">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between p-4 border-b border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 backdrop-blur-md dark:bg-black/10">
+        <div className="flex items-center space-x-4">
           <Button 
             variant="ghost" 
             size="icon"
@@ -399,23 +400,13 @@ console.log("Hello, World!");`);
           >
             <ArrowLeft className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
           </Button>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">{project?.name || 'Loading...'}</h1>
-            {project?.description && (
-              <p className="text-xs text-[#4a5d7e]/70 dark:text-white/50">{project.description}</p>
-            )}
-          </div>
+          <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">{project?.name || 'Loading...'}</h1>
+          {project?.description && (
+            <p className="text-xs text-[#4a5d7e]/70 dark:text-white/50">{project.description}</p>
+          )}
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#d8e3f3]/30 dark:bg-white/5">
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              isConnected ? "bg-green-400" : "bg-yellow-400"
-            )}></div>
-            <span className="text-sm text-[#4a5d7e] dark:text-white/70">
-              Shell {isConnected ? "Connected" : "Disconnected"}
-            </span>
-          </div>
+        <div className="flex items-center space-x-2">
+          {id && <ProjectVersionsDialog projectId={parseInt(id)} />}
           <input
             type="file"
             accept=".zip"

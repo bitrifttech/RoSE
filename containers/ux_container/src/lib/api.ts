@@ -306,3 +306,11 @@ export async function saveProject(projectId: number, message?: string): Promise<
 
   return response.json();
 }
+
+export async function getProjectVersions(projectId: number): Promise<ProjectVersion[]> {
+  const response = await fetch(`${API_URL}/projects/${projectId}/versions`);
+  if (!response.ok) {
+    throw new Error(`Failed to get project versions: ${response.statusText}`);
+  }
+  return response.json();
+}
