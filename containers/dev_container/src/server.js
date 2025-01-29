@@ -243,17 +243,15 @@ function createApp() {
                 const zip = new AdmZip(req.file.path);
                 zip.extractAllTo(tempDir, true);
 
-                // Remove node_modules from app directory if it exists
-                const appNodeModules = path.join(APP_DIR, 'node_modules');
-                if (fs.existsSync(appNodeModules)) {
-                    await fs.remove(appNodeModules);
+                // Clear the entire app directory except .git if it exists
+                logger.info('Clearing app directory...');
+                const items = await fs.readdir(APP_DIR);
+                for (const item of items) {
+                    if (item === '.git') continue;  // Preserve git history if it exists
+                    const itemPath = path.join(APP_DIR, item);
+                    await fs.remove(itemPath);
                 }
-
-                // Remove .next from app directory if it exists
-                const appNext = path.join(APP_DIR, '.next');
-                if (fs.existsSync(appNext)) {
-                    await fs.remove(appNext);
-                }
+                logger.info('App directory cleared');
 
                 // Copy all files except node_modules from temp to app directory
                 await fs.copy(tempDir, APP_DIR, {
