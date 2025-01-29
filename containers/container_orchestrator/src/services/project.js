@@ -340,12 +340,36 @@ class ProjectService {
         throw new Error(`Failed to upload to dev container: ${response.status} ${response.statusText}`);
       }
 
+      // After successful restore, update active flags
+      await prisma.$transaction([
+        // First, set all versions for this project to inactive
+        prisma.projectVersion.updateMany({
+          where: {
+            projectId: parseInt(projectId),
+            isActive: true
+          },
+          data: {
+            isActive: false
+          }
+        }),
+        // Then set the restored version to active
+        prisma.projectVersion.update({
+          where: {
+            id: version.id
+          },
+          data: {
+            isActive: true
+          }
+        })
+      ]);
+
       // Return version data without the zipContent
       const { zipContent, ...versionWithoutZip } = version;
       return {
         ...versionWithoutZip,
         restored: true,
-        restoredAt: new Date().toISOString()
+        restoredAt: new Date().toISOString(),
+        isActive: true  // Update the return value to reflect the new active state
       };
 
     } catch (error) {

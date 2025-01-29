@@ -149,20 +149,20 @@ router.post('/:id/save-files', async (req, res) => {
   }
 });
 
-// Get specific project version by version number
-router.get('/:id/versions/:versionNumber', async (req, res) => {
+// Restore specific project version by version number
+router.post('/:id/versions/:versionNumber/restore', async (req, res) => {
   try {
     const projectId = parseInt(req.params.id);
     const versionNumber = parseInt(req.params.versionNumber);
     
-    console.log(`[DEBUG] Getting version ${versionNumber} for project ${projectId}`);
+    console.log(`[DEBUG] Restoring version ${versionNumber} for project ${projectId}`);
     
     // Use the new method that includes zipContent
     const version = await projectService.getProjectVersionWithZip(projectId, versionNumber);
     res.json(version);
     
   } catch (error) {
-    console.error('Error getting specific version:', error);
+    console.error('Error restoring version:', error);
     if (error.message === 'Project not found' || error.message === 'Version not found') {
       return res.status(404).json({ error: error.message });
     }

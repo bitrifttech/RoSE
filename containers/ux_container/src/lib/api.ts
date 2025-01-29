@@ -314,3 +314,17 @@ export async function getProjectVersions(projectId: number): Promise<ProjectVers
   }
   return response.json();
 }
+
+export async function restoreProjectVersion(projectId: number, versionNumber: number): Promise<ProjectVersion> {
+  const response = await fetch(`${API_URL}/projects/${projectId}/versions/${versionNumber}/restore`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    }
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to restore project version: ${response.statusText}`);
+  }
+  return response.json();
+}

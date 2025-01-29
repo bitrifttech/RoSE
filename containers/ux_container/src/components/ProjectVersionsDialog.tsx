@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getProjectVersions, ProjectVersion } from "@/lib/api";
+import { getProjectVersions, restoreProjectVersion, ProjectVersion } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
 import { History } from "lucide-react";
 import { format } from "date-fns";
@@ -28,28 +28,51 @@ interface ProjectVersionsDialogProps {
 export function ProjectVersionsDialog({ projectId }: ProjectVersionsDialogProps) {
   const [versions, setVersions] = useState<ProjectVersion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const { toast } = useToast();
+
+  const loadVersions = async () => {
+    try {
+      const data = await getProjectVersions(projectId);
+      setVersions(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load project versions",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
-      getProjectVersions(projectId)
-        .then(setVersions)
-        .catch((error) => {
-          toast({
-            title: "Error",
-            description: "Failed to load project versions",
-            variant: "destructive",
-          });
-        });
+      loadVersions();
     }
-  }, [projectId, isOpen, toast]);
+  }, [projectId, isOpen]);
 
-  const handleRestore = (version: ProjectVersion) => {
-    // TODO: Implement restore functionality
-    toast({
-      title: "Not implemented",
-      description: `Restore to version ${version.version} will be implemented soon`,
-    });
+  const handleRestore = async (version: ProjectVersion) => {
+    try {
+      setIsRestoring(true);
+      await restoreProjectVersion(projectId, version.version);
+      toast({
+        title: "Success",
+        description: `Restored to version ${version.version}`,
+      });
+      // Reload versions to show updated active status
+      await loadVersions();
+      // Close the dialog
+      setIsOpen(false);
+      // Reload the page to show restored version
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to restore version: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   return (
@@ -98,9 +121,9 @@ export function ProjectVersionsDialog({ projectId }: ProjectVersionsDialogProps)
                       variant="outline"
                       size="sm"
                       onClick={() => handleRestore(version)}
-                      disabled={version.isActive}
+                      disabled={version.isActive || isRestoring}
                     >
-                      Restore
+                      {isRestoring ? "Restoring..." : "Restore"}
                     </Button>
                   </TableCell>
                 </TableRow>
