@@ -55,22 +55,32 @@ console.log("Hello, World!");`);
 
   useEffect(() => {
     if (id) {
-      console.log('Loading project with ID:', id);
-      getProject(parseInt(id))
-        .then(project => {
-          console.log('Loaded project:', project);
-          setProject(project);
-        })
-        .catch(error => {
-          console.error('Failed to load project:', error);
-          toast({
-            title: "Error",
-            description: "Failed to load project details",
-            variant: "destructive",
-          });
-        });
+      loadProject(id);
     }
-  }, [id, toast]);
+  }, [id]);
+
+  useEffect(() => {
+    if (!shellSocket) {
+      connectToServer();
+    }
+  }, []);
+
+  const loadProject = async (projectId: string) => {
+    console.log('Loading project with ID:', projectId);
+    getProject(parseInt(projectId))
+      .then(project => {
+        console.log('Loaded project:', project);
+        setProject(project);
+      })
+      .catch(error => {
+        console.error('Failed to load project:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load project details",
+          variant: "destructive",
+        });
+      });
+  };
 
   const refreshContainers = useCallback(async () => {
     try {
