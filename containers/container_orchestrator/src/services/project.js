@@ -1,6 +1,9 @@
 const prisma = require('./prisma');
 const dockerode = require('dockerode');
 const docker = new dockerode();
+const fetch = require('node-fetch');
+const FormData = require('form-data');
+const { Readable } = require('stream');
 
 class ProjectService {
   async createProject(userId, name, description) {
@@ -243,6 +246,111 @@ class ProjectService {
         version: 'desc'
       }
     });
+  }
+
+  async getProjectVersionByNumber(projectId, versionNumber) {
+    // First verify the project exists
+    const project = await prisma.project.findUnique({
+      where: { 
+        id: parseInt(projectId) 
+      }
+    });
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Get the specific version without zipContent
+    const version = await prisma.projectVersion.findFirst({
+      where: {
+        projectId: parseInt(projectId),
+        version: parseInt(versionNumber)
+      },
+      select: {
+        id: true,
+        version: true,
+        message: true,
+        createdAt: true,
+        isActive: true,
+        projectId: true
+      }
+    });
+
+    if (!version) {
+      throw new Error('Version not found');
+    }
+
+    return version;
+  }
+
+  async getProjectVersionWithZip(projectId, versionNumber) {
+    // First verify the project exists
+    const project = await prisma.project.findUnique({
+      where: { 
+        id: parseInt(projectId) 
+      }
+    });
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Get the specific version with zipContent
+    const version = await prisma.projectVersion.findFirst({
+      where: {
+        projectId: parseInt(projectId),
+        version: parseInt(versionNumber)
+      },
+      select: {
+        id: true,
+        version: true,
+        message: true,
+        createdAt: true,
+        isActive: true,
+        projectId: true,
+        zipContent: true
+      }
+    });
+
+    if (!version) {
+      throw new Error('Version not found');
+    }
+
+    try {
+      // Create form data
+      const formData = new FormData();
+      
+      // Convert Buffer to Readable Stream
+      const stream = Readable.from(version.zipContent);
+      
+      // Append the stream to form data
+      formData.append('file', stream, {
+        filename: 'app.zip',
+        contentType: 'application/zip'
+      });
+
+      // Send to dev container
+      const response = await fetch('http://dev_container:4000/upload/app', {
+        method: 'POST',
+        body: formData,
+        headers: formData.getHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to upload to dev container: ${response.status} ${response.statusText}`);
+      }
+
+      // Return version data without the zipContent
+      const { zipContent, ...versionWithoutZip } = version;
+      return {
+        ...versionWithoutZip,
+        restored: true,
+        restoredAt: new Date().toISOString()
+      };
+
+    } catch (error) {
+      throw new Error(`Failed to restore version: ${error.message}`);
+    }
   }
 }
 
