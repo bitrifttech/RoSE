@@ -29,7 +29,8 @@ function createApp() {
     let server = null;
     let childProcess = null;
     let wss = null;
-    const shellSessions = new Map();
+    let sharedTerm = null;
+    const connectedClients = new Set();
 
     // Add response time tracking
     app.use((req, res, next) => {
@@ -426,64 +427,41 @@ function createApp() {
     });
 
     // Command Execution
-    app.post('/execute', (req, res) => {
-        const { command, args = [] } = req.body;
-        
-        logger.logRequest(req, { 
-            command, 
-            args 
-        });
-
-        const proc = spawn(command, args, { 
-            cwd: APP_DIR,
-            env: { ...process.env, PATH: process.env.PATH },
-            shell: true
-        });
-
-        let stdout = '';
-        let stderr = '';
-
-        proc.stdout.on('data', (data) => {
-            stdout += data.toString();
-        });
-
-        proc.stderr.on('data', (data) => {
-            stderr += data.toString();
-        });
-
-        proc.on('close', (code) => {
-            if (code !== 0) {
-                logger.warn('Command execution failed', { 
-                    command, 
-                    args, 
-                    code, 
-                    stdout, 
-                    stderr 
-                });
-                return res.status(500).json({ 
-                    error: `Process exited with code ${code}`, 
-                    stdout,
-                    stderr,
-                    code 
+    app.post('/execute', async (req, res) => {
+        try {
+            const { command } = req.body;
+            
+            if (!command) {
+                return res.status(400).json({ 
+                    error: 'Missing command in request body',
+                    details: 'Please provide a command to execute'
                 });
             }
-            logger.info('Command executed successfully', { 
-                command, 
-                args, 
-                stdout, 
-                stderr 
-            });
-            res.json({ stdout, stderr });
-        });
 
-        proc.on('error', (error) => {
-            logger.logError(error, req);
-            res.status(500).json({ 
-                error: error.message, 
-                stdout,
-                stderr
+            if (!sharedTerm) {
+                return res.status(500).json({
+                    error: 'Terminal not available',
+                    details: 'WebSocket terminal connection required'
+                });
+            }
+
+            // Execute in shared terminal
+            sharedTerm.write(command + '\n');
+            
+            res.json({
+                success: true,
+                message: 'Command executed in shared terminal',
+                command: command
             });
-        });
+
+        } catch (error) {
+            console.error('Command execution error:', error);
+            res.status(500).json({
+                error: 'Command execution failed',
+                details: error.message,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            });
+        }
     });
 
     // App Server Management
@@ -556,28 +534,29 @@ function createApp() {
                 // Initialize WebSocket server
                 wss = new WebSocket.Server({ server });
                 
+                // Create shared terminal
+                const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
+                sharedTerm = pty.spawn(shell, [], {
+                    name: 'xterm-color',
+                    cols: 80,
+                    rows: 24,
+                    cwd: APP_DIR,
+                    env: process.env
+                });
+
+                // Terminal -> All WebSocket clients
+                sharedTerm.onData(data => {
+                    const message = JSON.stringify({ type: 'output', data });
+                    for (const client of connectedClients) {
+                        if (client.readyState === WebSocket.OPEN) {
+                            client.send(message);
+                        }
+                    }
+                });
+                
                 wss.on('connection', (ws) => {
                     logger.info('New shell connection');
-                    
-                    // Create terminal
-                    const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
-                    const term = pty.spawn(shell, [], {
-                        name: 'xterm-color',
-                        cols: 80,
-                        rows: 24,
-                        cwd: APP_DIR,
-                        env: process.env
-                    });
-
-                    const sessionId = Date.now().toString();
-                    shellSessions.set(sessionId, { term, ws });
-
-                    // Terminal -> WebSocket
-                    term.onData(data => {
-                        if (ws.readyState === WebSocket.OPEN) {
-                            ws.send(JSON.stringify({ type: 'output', data }));
-                        }
-                    });
+                    connectedClients.add(ws);
 
                     // WebSocket -> Terminal
                     ws.on('message', (message) => {
@@ -585,10 +564,10 @@ function createApp() {
                             const { type, data } = JSON.parse(message);
                             switch (type) {
                                 case 'input':
-                                    term.write(data);
+                                    sharedTerm.write(data);
                                     break;
                                 case 'resize':
-                                    term.resize(data.cols, data.rows);
+                                    sharedTerm.resize(data.cols, data.rows);
                                     break;
                             }
                         } catch (err) {
@@ -599,20 +578,16 @@ function createApp() {
                     // Handle close
                     ws.on('close', () => {
                         logger.info('Shell connection closed');
-                        if (shellSessions.has(sessionId)) {
-                            const session = shellSessions.get(sessionId);
-                            session.term.kill();
-                            shellSessions.delete(sessionId);
-                        }
+                        connectedClients.delete(ws);
                     });
 
                     // Send initial message
                     ws.send(JSON.stringify({ 
                         type: 'connected', 
                         data: { 
-                            sessionId,
                             shell,
-                            cwd: APP_DIR
+                            cwd: APP_DIR,
+                            shared: true
                         } 
                     }));
                 });
@@ -624,18 +599,19 @@ function createApp() {
 
     const stopServer = () => {
         return new Promise((resolve) => {
-            // Close all shell sessions
-            for (const session of shellSessions.values()) {
-                try {
-                    session.term.kill();
-                    if (session.ws.readyState === WebSocket.OPEN) {
-                        session.ws.close();
-                    }
-                } catch (err) {
-                    logger.logError(err, req);
+            // Close all WebSocket connections
+            for (const client of connectedClients) {
+                if (client.readyState === WebSocket.OPEN) {
+                    client.close();
                 }
             }
-            shellSessions.clear();
+            connectedClients.clear();
+
+            // Kill shared terminal
+            if (sharedTerm) {
+                sharedTerm.kill();
+                sharedTerm = null;
+            }
 
             if (wss) {
                 wss.close();
