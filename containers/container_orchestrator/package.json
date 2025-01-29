@@ -1,14 +1,25 @@
 {
-  "name": "docker-terminal-server",
+  "name": "rose-container-orchestrator",
   "version": "1.0.0",
-  "description": "Node.js server that serves a command line from a Docker container",
+  "description": "Container orchestrator for RoSE with project state management",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
+    "@prisma/client": "^5.8.1",
+    "cors": "^2.8.5",
     "dockerode": "^3.3.1",
     "express": "^4.18.2",
-    "ws": "^8.13.0"
+    "node-fetch": "^2.7.0",
+    "ws": "^8.13.0",
+    "form-data": "^4.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3",
+    "prisma": "^5.8.1"
   }
 }

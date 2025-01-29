@@ -1,0 +1,58 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String
+  createdAt DateTime  @default(now())
+  projects  Project[]
+  settings  UserSettings?
+}
+
+model UserSettings {
+  id        Int     @id @default(autoincrement())
+  user      User    @relation(fields: [userId], references: [id])
+  userId    Int     @unique
+  theme     String  @default("dark")
+  settings  Json?   // For storing other user preferences
+}
+
+model Project {
+  id            Int       @id @default(autoincrement())
+  name          String
+  description   String?
+  user          User      @relation(fields: [userId], references: [id])
+  userId        Int
+  versions      ProjectVersion[]
+  settings      ProjectSettings?
+  workspacePath String    @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ProjectVersion {
+  id          Int      @id @default(autoincrement())
+  project     Project  @relation(fields: [projectId], references: [id])
+  projectId   Int
+  version     Int
+  zipContent  Bytes
+  message     String?
+  createdAt   DateTime @default(now())
+  isActive    Boolean  @default(false)
+}
+
+model ProjectSettings {
+  id          Int     @id @default(autoincrement())
+  project     Project @relation(fields: [projectId], references: [id])
+  projectId   Int     @unique
+  settings    Json?   // For storing project-specific settings
+}

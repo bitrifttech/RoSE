@@ -363,3 +363,4 @@ class AgentGraph:
 
 # Create default instance
 agent = AgentGraph()
+graph = agent.graph

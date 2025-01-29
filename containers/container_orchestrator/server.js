@@ -1,9 +1,39 @@
 const express = require('express');
 const Docker = require('dockerode');
+const cors = require('cors');
+const prisma = require('./src/services/prisma');
+
+const userRoutes = require('./src/routes/user');
+const projectRoutes = require('./src/routes/project');
 
 const app = express();
 const PORT = 8080;
 const docker = new Docker();
+
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`[DEBUG] ${req.method} ${req.path}`);
+  console.log('[DEBUG] Request headers:', req.headers);
+  console.log('[DEBUG] Request params:', req.params);
+  console.log('[DEBUG] Request query:', req.query);
+  next();
+});
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/projects', projectRoutes);
+
+// Test route
+app.get('/test', (req, res) => {
+  res.json({ message: 'Server is working' });
+});
+
+// Legacy container management routes
 
 // Route: Serves a simple HTML page at "/"
 app.get('/', (req, res) => {
@@ -43,7 +73,7 @@ app.get('/', (req, res) => {
         // Function to refresh container list
         async function refreshContainers() {
           try {
-            const response = await fetch('/containers');
+            const response = await fetch('/api/containers');
             if (!response.ok) {
               throw new Error('Failed to fetch containers');
             }
@@ -77,7 +107,7 @@ app.get('/', (req, res) => {
         // Start Container
         document.getElementById('start-btn').addEventListener('click', async () => {
           try {
-            const response = await fetch('/container', { method: 'POST' });
+            const response = await fetch('/api/container', { method: 'POST' });
             if (!response.ok) {
               throw new Error('Failed to start container');
             }
@@ -97,7 +127,7 @@ app.get('/', (req, res) => {
         document.getElementById('stop-btn').addEventListener('click', async () => {
           if (!containerId) return;
           try {
-            const response = await fetch('/container/' + containerId, { 
+            const response = await fetch('/api/container/' + containerId, { 
               method: 'DELETE'
             });
             if (!response.ok) {
@@ -119,8 +149,38 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Route: POST /container - Create and start the container
-app.post('/container', async (req, res) => {
+// Route: GET /api/containers - List all running dev_container containers
+app.get('/api/containers', async (req, res) => {
+  try {
+    // Get all containers
+    const containers = await docker.listContainers({
+      all: false,  // only running containers
+      filters: JSON.stringify({
+        ancestor: ['rose-dev_container:latest']
+      })
+    });
+
+    // Map container data to a more friendly format
+    const containerList = containers.map(container => ({
+      id: container.Id,
+      name: container.Names[0].replace(/^\//, ''),
+      status: container.Status,
+      ports: container.Ports.map(port => ({
+        internal: port.PrivatePort,
+        external: port.PublicPort
+      })),
+      created: container.Created
+    }));
+
+    return res.json(containerList);
+  } catch (error) {
+    console.error('Error listing containers:', error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+
+// Route: POST /api/container - Create and start the container
+app.post('/api/container', async (req, res) => {
   try {
     // Create a new Docker container (adjust parameters as needed)
     const container = await docker.createContainer({
@@ -169,8 +229,8 @@ app.post('/container', async (req, res) => {
   }
 });
 
-// Route: DELETE /container/:containerId - Stop and remove the container
-app.delete('/container/:containerId', async (req, res) => {
+// Route: DELETE /api/container/:containerId - Stop and remove the container
+app.delete('/api/container/:containerId', async (req, res) => {
   const { containerId } = req.params;
   try {
     const container = docker.getContainer(containerId);
@@ -185,37 +245,32 @@ app.delete('/container/:containerId', async (req, res) => {
   }
 });
 
-// Route: GET /containers - List all running dev_container containers
-app.get('/containers', async (req, res) => {
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('[ERROR]', err);
+  res.status(500).json({ error: err.message });
+});
+
+// 404 handler
+app.use((req, res) => {
+  console.log('[404] Not Found:', req.method, req.path);
+  res.status(404).json({ error: 'Not Found' });
+});
+
+// Wait for database connection before starting server
+async function startServer() {
   try {
-    // Get all containers
-    const containers = await docker.listContainers({
-      all: false,  // only running containers
-      filters: JSON.stringify({
-        ancestor: ['rose-dev_container:latest']
-      })
+    // Test database connection
+    await prisma.$connect();
+    console.log('Successfully connected to database');
+
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
     });
-
-    // Map container data to a more friendly format
-    const containerList = containers.map(container => ({
-      id: container.Id,
-      name: container.Names[0].replace(/^\//, ''),
-      status: container.Status,
-      ports: container.Ports.map(port => ({
-        internal: port.PrivatePort,
-        external: port.PublicPort
-      })),
-      created: container.Created
-    }));
-
-    return res.json(containerList);
   } catch (error) {
-    console.error('Error listing containers:', error);
-    return res.status(500).json({ error: error.message });
+    console.error('Failed to connect to database:', error);
+    process.exit(1);
   }
-});
+}
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+startServer();

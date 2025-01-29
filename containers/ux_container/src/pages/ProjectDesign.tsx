@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Upload } from "lucide-react";
+import { ArrowLeft, Download, Upload, Save } from "lucide-react";
 import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Terminal from "@/components/Terminal";
@@ -14,7 +14,7 @@ import { ContainerControls } from "@/components/ContainerControls";
 import { ContainerList } from "@/components/ContainerList";
 import { Container } from "@/types/container";
 import { debounce } from "@/utils/debounce";
-import { updateFile } from "@/lib/api";
+import { updateFile, getProject, Project, saveProject } from "@/lib/api";
 import EditorTabs from "@/components/EditorTabs";
 import { createEditorTab, getLanguageFromPath } from "@/utils/editor";
 import { PreviewWindow } from "@/components/PreviewWindow";
@@ -24,6 +24,8 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { Settings2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { downloadApp, uploadApp } from "@/lib/api";
+import { SaveProjectDialog } from "@/components/SaveProjectDialog";
+import { ProjectVersionsDialog } from "@/components/ProjectVersionsDialog";
 
 const ProjectDesign = () => {
   const { id } = useParams();
@@ -48,6 +50,27 @@ console.log("Hello, World!");`);
   const [isContainerRunning, setIsContainerRunning] = useState(false);
   const [showContainerInfo, setShowContainerInfo] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      console.log('Loading project with ID:', id);
+      getProject(parseInt(id))
+        .then(project => {
+          console.log('Loaded project:', project);
+          setProject(project);
+        })
+        .catch(error => {
+          console.error('Failed to load project:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load project details",
+            variant: "destructive",
+          });
+        });
+    }
+  }, [id, toast]);
 
   const refreshContainers = useCallback(async () => {
     try {
@@ -332,6 +355,25 @@ console.log("Hello, World!");`);
     }
   };
 
+  const handleSaveProject = useCallback(async (message: string) => {
+    if (!id) return;
+
+    try {
+      const version = await saveProject(parseInt(id), message);
+      toast({
+        title: "Success",
+        description: `Project saved as version ${version.versionNumber} - "${version.message}"`,
+      });
+    } catch (error) {
+      console.error('Failed to save project:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to save project",
+        variant: "destructive",
+      });
+    }
+  }, [id, toast]);
+
   useEffect(() => {
     return () => {
       if (shellSocket) {
@@ -348,8 +390,8 @@ console.log("Hello, World!");`);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#1a1f2c] dark:via-[#1f2937] dark:to-[#2d1f2f]">
-      <div className="flex items-center justify-between p-3 border-b border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 backdrop-blur-md dark:bg-black/10">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between p-4 border-b border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 backdrop-blur-md dark:bg-black/10">
+        <div className="flex items-center space-x-4">
           <Button 
             variant="ghost" 
             size="icon"
@@ -358,21 +400,13 @@ console.log("Hello, World!");`);
           >
             <ArrowLeft className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
           </Button>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">Rose Project</h1>
-            <p className="text-xs text-[#4a5d7e]/70 dark:text-white/50">Development Environment</p>
-          </div>
+          <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">{project?.name || 'Loading...'}</h1>
+          {project?.description && (
+            <p className="text-xs text-[#4a5d7e]/70 dark:text-white/50">{project.description}</p>
+          )}
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#d8e3f3]/30 dark:bg-white/5">
-            <div className={cn(
-              "w-2 h-2 rounded-full",
-              isConnected ? "bg-green-400" : "bg-yellow-400"
-            )}></div>
-            <span className="text-sm text-[#4a5d7e] dark:text-white/70">
-              Shell {isConnected ? "Connected" : "Disconnected"}
-            </span>
-          </div>
+        <div className="flex items-center space-x-2">
+          {id && <ProjectVersionsDialog projectId={parseInt(id)} />}
           <input
             type="file"
             accept=".zip"
@@ -395,6 +429,14 @@ console.log("Hello, World!");`);
             title="Download Project"
           >
             <Download className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowSaveDialog(true)}
+            title="Save Project"
+          >
+            <Save className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
           </Button>
           <Button
             variant="ghost"
@@ -587,6 +629,11 @@ console.log("Hello, World!");`);
       {showSettings && (
         <EditorSettingsPanel onClose={() => setShowSettings(false)} /> 
       )}
+      <SaveProjectDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        onSave={handleSaveProject}
+      />
     </div>
   );
 };

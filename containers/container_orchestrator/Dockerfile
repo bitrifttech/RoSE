@@ -4,16 +4,25 @@ FROM node:16
 # Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
-COPY package.json ./
-RUN npm install
-RUN npm install node-pty
+# Copy package files
+COPY package*.json ./
 
-# Copy application code
-COPY . .
+# Install dependencies
+RUN npm install
+
+# Generate Prisma Client
+COPY prisma ./prisma/
+RUN npx prisma generate
+
+# Copy source code
+COPY src ./src/
+COPY server.js .
+
+# Environment setup
+ENV NODE_ENV=development
 
 # Expose the port
 EXPOSE 8080
 
 # Start the server
-CMD ["node", "server.js"]
+CMD ["/bin/sh", "-c", "npx prisma migrate deploy && node server.js"]

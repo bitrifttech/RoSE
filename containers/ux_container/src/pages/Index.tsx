@@ -1,49 +1,136 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useCallback } from "react";
 import { ProjectCard } from "@/components/ProjectCard";
+import { NewProjectCard } from "@/components/NewProjectCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-
-const projects = [
-  {
-    id: 1,
-    name: "Project One",
-    description: "A sample project description",
-    lastModified: new Date().toISOString(),
-  },
-  // Add more sample projects as needed
-];
+import { UserSelector } from "@/components/user/UserSelector";
+import { User } from "@/types/user";
+import { getUser } from "@/lib/api/users";
+import { useToast } from "@/components/ui/use-toast";
+import { ORCHESTRATOR_API } from "@/lib/api/config";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { toast } = useToast();
+
+  // Function to refresh user data
+  const refreshUserData = useCallback(async () => {
+    if (selectedUser) {
+      try {
+        const updatedUser = await getUser(selectedUser.id);
+        setSelectedUser(updatedUser);
+      } catch (error) {
+        console.error('Failed to refresh user data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to refresh user data",
+          variant: "destructive",
+        });
+      }
+    }
+  }, [selectedUser, toast]);
+
+  // Function to handle user selection
+  const handleUserSelect = (user: User) => {
+    setSelectedUser(user);
+  };
+
+  // Function to refresh user data when a new project is created
+  const handleProjectCreated = async () => {
+    await refreshUserData();
+  };
+
+  // Function to handle project deletion
+  const handleProjectDelete = async (projectId: number) => {
+    try {
+      const response = await fetch(`${ORCHESTRATOR_API}/projects/${projectId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete project');
+      }
+
+      toast({
+        title: "Success",
+        description: "Project deleted successfully",
+      });
+
+      await refreshUserData();
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#1a1f2c] dark:via-[#1f2937] dark:to-[#2d1f2f]">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-            My Projects
-          </h1>
-          <Button
-            onClick={() => navigate("/project/new")}
-            className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
-          >
-            <Plus className="w-4 h-4" />
-            New Project
-          </Button>
-        </div>
+        <div className="flex flex-col gap-6">
+          <div className="flex justify-between items-center">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
+              My Projects
+            </h1>
+            {selectedUser && (
+              <Button
+                onClick={() => navigate("/project/new")}
+                className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+              >
+                <Plus className="w-4 h-4" />
+                New Project
+              </Button>
+            )}
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project, index) => (
-            <div
-              key={project.id}
-              className="animate-fadeIn"
-              style={{
-                animationDelay: `${index * 150}ms`
-              }}
-            >
-              <ProjectCard project={project} />
+          <div className="w-full max-w-md">
+            <UserSelector 
+              onUserSelect={handleUserSelect} 
+              selectedUserId={selectedUser?.id}
+            />
+          </div>
+
+          {selectedUser ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <NewProjectCard 
+                userId={selectedUser.id} 
+                onProjectCreated={handleProjectCreated}
+              />
+              {selectedUser.projects.map((project, index) => (
+                <div
+                  key={project.id}
+                  className="animate-fadeIn"
+                  style={{
+                    animationDelay: `${index * 150}ms`
+                  }}
+                >
+                  <ProjectCard 
+                    project={{
+                      id: project.id,
+                      name: project.name,
+                      description: project.description || "",
+                      lastModified: project.updatedAt
+                    }}
+                    onDelete={handleProjectDelete}
+                  />
+                </div>
+              ))}
+              {selectedUser.projects.length === 0 && (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  No projects yet. Click "New Project" to create one.
+                </div>
+              )}
             </div>
-          ))}
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Select a user to view their projects
+            </div>
+          )}
         </div>
       </div>
     </div>

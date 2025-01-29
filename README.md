@@ -56,7 +56,22 @@ The project consists of several Docker containers that work together:
    # Edit .env and add your OpenAI API key
    ```
 
-2. **Start the Development Environment**
+2. **Database Initialization**
+   ```bash
+   # Make the initialization script executable
+   chmod +x init-db.sh
+
+   # Run the database initialization script
+   ./init-db.sh
+   ```
+   This script will:
+   - Create a default .env file if none exists
+   - Start the PostgreSQL container
+   - Wait for PostgreSQL to be ready
+   - Start the container orchestrator
+   - Run all database migrations
+
+3. **Start the Development Environment**
    ```bash
    # Build and start all containers
    docker compose up --build
@@ -67,11 +82,33 @@ The project consists of several Docker containers that work together:
    - Container Orchestrator: http://localhost:8000
    - LangGraph Service: http://localhost:8100
 
-3. **Development Workflow**
+4. **Development Workflow**
    - The frontend code is in the root directory
    - Each container's code is in `src/containers/[container-name]`
    - Changes to frontend code will hot-reload
    - Container changes require rebuilding: `docker compose up --build [container-name]`
+
+## Database Management
+
+The project uses PostgreSQL with Prisma as the ORM. The database is automatically initialized when you run `init-db.sh`, but here are some useful commands for database management:
+
+```bash
+# View database logs
+docker-compose logs postgres
+
+# Connect to database CLI
+docker-compose exec postgres psql -U rose -d rose_db
+
+# Reset database (warning: this will delete all data)
+docker-compose down -v
+./init-db.sh
+
+# Create a new migration after schema changes
+docker-compose exec container-orchestrator npx prisma migrate dev
+
+# Apply pending migrations
+docker-compose exec container-orchestrator npx prisma migrate deploy
+```
 
 ## Container Details
 
