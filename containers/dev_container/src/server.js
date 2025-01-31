@@ -426,40 +426,89 @@ function createApp() {
         }
     });
 
-    // Command Execution
+    // Execute command in terminal
     app.post('/execute', async (req, res) => {
         try {
             const { command } = req.body;
-            
             if (!command) {
-                return res.status(400).json({ 
-                    error: 'Missing command in request body',
-                    details: 'Please provide a command to execute'
-                });
+                return res.status(400).json({ error: 'Command is required' });
             }
+
+            logger.info('Executing command:', { command });
 
             if (!sharedTerm) {
-                return res.status(500).json({
-                    error: 'Terminal not available',
-                    details: 'WebSocket terminal connection required'
-                });
+                return res.status(400).json({ error: 'No active terminal session found' });
             }
 
-            // Execute in shared terminal
-            sharedTerm.write(command + '\n');
-            
-            res.json({
-                success: true,
-                message: 'Command executed in shared terminal',
-                command: command
+            // Create a promise to collect output
+            const outputPromise = new Promise((resolve, reject) => {
+                let output = '';
+                let timeout;
+                let commandComplete = false;
+
+                // Handler for terminal output
+                const dataHandler = (data) => {
+                    output += data;
+                    // Reset timeout on new data
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => {
+                        if (!commandComplete) {
+                            commandComplete = true;
+                            cleanup();
+                            resolve(output);
+                        }
+                    }, 1000); // Wait 1 second after last output
+                };
+
+                // Cleanup function
+                const cleanup = () => {
+                    sharedTerm.removeListener('data', dataHandler);
+                    clearTimeout(timeout);
+                };
+
+                // Set up timeout for command completion
+                timeout = setTimeout(() => {
+                    if (!commandComplete) {
+                        commandComplete = true;
+                        cleanup();
+                        resolve(output);
+                    }
+                }, 5000); // Maximum 5 second wait
+
+                // Listen for output
+                sharedTerm.on('data', dataHandler);
+
+                // Write command to terminal with proper line ending
+                // Ensure the command is properly escaped and wrapped
+                const wrappedCommand = `${command.replace(/"/g, '\\"')}\r`;
+                sharedTerm.write(wrappedCommand);
+            });
+
+            // Wait for command output
+            const output = await outputPromise;
+
+            logger.info('Command executed successfully', { 
+                command, 
+                outputLength: output.length 
+            });
+
+            // Clean the output by removing the command echo and terminal control characters
+            const cleanOutput = output
+                .replace(new RegExp(`^${command}\r\n`), '') // Remove command echo
+                .replace(/\x1b\[[0-9;]*[a-zA-Z]/g, '')     // Remove ANSI escape sequences
+                .trim();
+
+            res.json({ 
+                success: true, 
+                command,
+                output: cleanOutput
             });
 
         } catch (error) {
-            console.error('Command execution error:', error);
-            res.status(500).json({
-                error: 'Command execution failed',
-                details: error.message,
-                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            logger.error('Error executing command:', error);
+            res.status(500).json({ 
+                error: 'Failed to execute command',
+                details: error.message
             });
         }
     });
