@@ -9,6 +9,8 @@ import { User } from "@/types/user";
 import { getUser } from "@/lib/api/users";
 import { useToast } from "@/components/ui/use-toast";
 import { ORCHESTRATOR_API } from "@/lib/api/config";
+import { Link } from "react-router-dom";
+import { DarkModeToggle } from "@/components/DarkModeToggle";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -73,19 +75,14 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#1a1f2c] dark:via-[#1f2937] dark:to-[#2d1f2f]">
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col gap-6">
-          <div className="flex justify-between items-center">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary/90 to-primary bg-clip-text text-transparent">
-              My Projects
-            </h1>
-            {selectedUser && (
-              <Button
-                onClick={() => navigate("/project/new")}
-                className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
-              >
-                <Plus className="w-4 h-4" />
-                New Project
-              </Button>
-            )}
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold">My Projects</h1>
+            <div className="flex gap-4">
+              <Link to="/auth" className="text-sm text-muted-foreground hover:text-primary">
+                Login / Sign Up
+              </Link>
+              <DarkModeToggle />
+            </div>
           </div>
 
           <div className="w-full max-w-md">

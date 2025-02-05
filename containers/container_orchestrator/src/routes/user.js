@@ -23,6 +23,44 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Register new user
+router.post('/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+    
+    // Validate required fields
+    if (!email || !password || !name) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['email', 'password', 'name']
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
+    const user = await userService.registerUser(email, password, name);
+    
+    // Don't send password in response
+    const { password: _, ...userWithoutPassword } = user;
+    res.status(201).json(userWithoutPassword);
+  } catch (error) {
+    if (error.message === 'User with this email already exists') {
+      res.status(409).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: error.message });
+    }
+  }
+});
+
 // Get user details
 router.get('/:id', async (req, res) => {
   try {

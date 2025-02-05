@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { EditorSettingsProvider } from "@/contexts/EditorSettings";
 import Index from "@/pages/Index";
+import Auth from "@/pages/Auth";
 import ProjectDesign from "@/pages/ProjectDesign";
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/project/:id" element={<ProjectDesign />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
