@@ -1,9 +1,10 @@
+version: '3.8'
 services:
   postgres:
     image: postgres:16
     environment:
+      POSTGRES_PASSWORD: postgres
       POSTGRES_USER: rose
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: rose_db
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -39,7 +40,7 @@ services:
     ports:
       - "8000:8080"
     environment:
-      - DATABASE_URL=postgresql://rose:${DB_PASSWORD}@postgres:5432/rose_db?schema=public
+      - DATABASE_URL=postgresql://rose:postgres@postgres:5432/rose_db?schema=public
       - NODE_ENV=development
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -72,7 +73,7 @@ services:
       - ./containers/dev_container:/app
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - DATABASE_URL=postgresql://rose:${DB_PASSWORD}@postgres:5432/rose_db?schema=public
+      - DATABASE_URL=postgresql://rose:postgres@postgres:5432/rose_db?schema=public
     restart: unless-stopped
     networks:
       - rose_network
@@ -88,7 +89,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://rose:${DB_PASSWORD}@postgres:5432/rose_db?schema=public
+      - DATABASE_URL=postgresql://rose:postgres@postgres:5432/rose_db?schema=public
     restart: unless-stopped
     networks:
       - rose_network
