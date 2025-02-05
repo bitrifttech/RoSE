@@ -1,7 +1,9 @@
 const prisma = require('./prisma');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const SALT_ROUNDS = 10;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; // In production, always use environment variable
 
 class UserService {
   async createUser(email, name) {
@@ -90,6 +92,49 @@ class UserService {
         settings
       }
     });
+  }
+
+  async loginUser(email, password) {
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        settings: true,
+        projects: {
+          include: {
+            settings: true
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      throw new Error('Invalid email or password');
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid email or password');
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: user.id,
+        email: user.email
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Don't send password in response
+    const { password: _, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      token
+    };
   }
 }
 

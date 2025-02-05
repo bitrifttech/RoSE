@@ -61,6 +61,30 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// Login user
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Validate required fields
+    if (!email || !password) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        required: ['email', 'password']
+      });
+    }
+
+    const result = await userService.loginUser(email, password);
+    res.json(result);
+  } catch (error) {
+    if (error.message === 'Invalid email or password') {
+      res.status(401).json({ error: error.message });
+    } else {
+      res.status(400).json({ error: error.message });
+    }
+  }
+});
+
 // Get user details
 router.get('/:id', async (req, res) => {
   try {
