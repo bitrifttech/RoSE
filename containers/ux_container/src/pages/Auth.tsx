@@ -18,18 +18,19 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
+      const response = await fetch(`${API_BASE}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error('Login failed');
+        throw new Error(data.error || 'Login failed');
       }
 
-      const data = await response.json();
       localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data.token);
       toast({
         title: 'Success',
         description: 'Successfully logged in',
@@ -38,7 +39,7 @@ export default function Auth() {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to log in',
+        description: error instanceof Error ? error.message : 'Failed to log in',
         variant: 'destructive',
       });
     }
@@ -47,27 +48,41 @@ export default function Auth() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_BASE}/auth/register`, {
+      // Validate password length
+      if (password.length < 8) {
+        throw new Error('Password must be at least 8 characters long');
+      }
+
+      const response = await fetch(`${API_BASE}/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, name }),
       });
 
+      const data = await response.json();
       if (!response.ok) {
-        throw new Error('Registration failed');
+        throw new Error(data.error || 'Registration failed');
       }
 
-      const data = await response.json();
-      localStorage.setItem('user', JSON.stringify(data.user));
       toast({
         title: 'Success',
-        description: 'Successfully registered',
+        description: 'Successfully registered! Please log in.',
       });
-      navigate('/');
+      
+      // Clear form
+      setEmail('');
+      setPassword('');
+      setName('');
+      
+      // Switch to login tab
+      const loginTab = document.querySelector('[value="login"]') as HTMLElement;
+      if (loginTab) {
+        loginTab.click();
+      }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to register',
+        description: error instanceof Error ? error.message : 'Failed to register',
         variant: 'destructive',
       });
     }
@@ -142,10 +157,11 @@ export default function Auth() {
                   <Input
                     id="signup-password"
                     type="password"
-                    placeholder="Enter your password"
+                    placeholder="Enter your password (min. 8 characters)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    minLength={8}
                   />
                 </div>
                 <Button type="submit" className="w-full">Sign Up</Button>
