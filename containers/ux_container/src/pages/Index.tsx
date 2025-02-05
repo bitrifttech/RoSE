@@ -1,10 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ProjectCard } from "@/components/ProjectCard";
 import { NewProjectCard } from "@/components/NewProjectCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { UserSelector } from "@/components/user/UserSelector";
 import { User } from "@/types/user";
 import { getUser } from "@/lib/api/users";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,15 +13,44 @@ import { DarkModeToggle } from "@/components/DarkModeToggle";
 
 const Index = () => {
   const navigate = useNavigate();
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
+
+  // Load user data on component mount
+  useEffect(() => {
+    const loadUser = async () => {
+      const storedUser = localStorage.getItem('user');
+      if (!storedUser) {
+        // If no user is logged in, redirect to auth page
+        navigate('/auth');
+        return;
+      }
+
+      try {
+        const userData = JSON.parse(storedUser);
+        // Fetch fresh user data to get latest projects
+        const freshUserData = await getUser(userData.id);
+        setUser(freshUserData);
+      } catch (error) {
+        console.error('Failed to load user data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load user data. Please log in again.",
+          variant: "destructive",
+        });
+        navigate('/auth');
+      }
+    };
+
+    loadUser();
+  }, [navigate, toast]);
 
   // Function to refresh user data
   const refreshUserData = useCallback(async () => {
-    if (selectedUser) {
+    if (user) {
       try {
-        const updatedUser = await getUser(selectedUser.id);
-        setSelectedUser(updatedUser);
+        const updatedUser = await getUser(user.id);
+        setUser(updatedUser);
       } catch (error) {
         console.error('Failed to refresh user data:', error);
         toast({
@@ -32,11 +60,13 @@ const Index = () => {
         });
       }
     }
-  }, [selectedUser, toast]);
+  }, [user, toast]);
 
-  // Function to handle user selection
-  const handleUserSelect = (user: User) => {
-    setSelectedUser(user);
+  // Function to handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    navigate('/auth');
   };
 
   // Function to refresh user data when a new project is created
@@ -49,6 +79,9 @@ const Index = () => {
     try {
       const response = await fetch(`${ORCHESTRATOR_API}/projects/${projectId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
       });
 
       if (!response.ok) {
@@ -60,6 +93,7 @@ const Index = () => {
         description: "Project deleted successfully",
       });
 
+      // Refresh the user data to update the projects list
       await refreshUserData();
     } catch (error) {
       console.error('Failed to delete project:', error);
@@ -71,65 +105,34 @@ const Index = () => {
     }
   };
 
+  if (!user) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#1a1f2c] dark:via-[#1f2937] dark:to-[#2d1f2f]">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col gap-6">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">My Projects</h1>
-            <div className="flex gap-4">
-              <Link to="/auth" className="text-sm text-muted-foreground hover:text-primary">
-                Login / Sign Up
-              </Link>
-              <DarkModeToggle />
-            </div>
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Welcome, {user.name}</h1>
+          <div className="flex items-center gap-4">
+            <DarkModeToggle />
+            <Button variant="outline" onClick={handleLogout}>Logout</Button>
           </div>
-
-          <div className="w-full max-w-md">
-            <UserSelector 
-              onUserSelect={handleUserSelect} 
-              selectedUserId={selectedUser?.id}
-            />
-          </div>
-
-          {selectedUser ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <NewProjectCard 
-                userId={selectedUser.id} 
-                onProjectCreated={handleProjectCreated}
-              />
-              {selectedUser.projects.map((project, index) => (
-                <div
-                  key={project.id}
-                  className="animate-fadeIn"
-                  style={{
-                    animationDelay: `${index * 150}ms`
-                  }}
-                >
-                  <ProjectCard 
-                    project={{
-                      id: project.id,
-                      name: project.name,
-                      description: project.description || "",
-                      lastModified: project.updatedAt
-                    }}
-                    onDelete={handleProjectDelete}
-                  />
-                </div>
-              ))}
-              {selectedUser.projects.length === 0 && (
-                <div className="col-span-full text-center py-8 text-muted-foreground">
-                  No projects yet. Click "New Project" to create one.
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              Select a user to view their projects
-            </div>
-          )}
         </div>
-      </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <NewProjectCard onProjectCreated={handleProjectCreated} userId={user.id} />
+          {user.projects.map((project) => (
+            <ProjectCard
+              key={project.id}
+              project={project}
+              onDelete={() => handleProjectDelete(project.id)}
+            />
+          ))}
+        </div>
+      </main>
     </div>
   );
 };
