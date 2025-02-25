@@ -16,17 +16,30 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Expanded state for multi-agent support
-class AgentState(TypedDict, total=False):
+class ProjectState(TypedDict, total=False):
     messages: Annotated[Sequence[Union[HumanMessage, AIMessage, SystemMessage, ToolMessage]], operator.add]
     chat_history: Annotated[List[Dict[str, str]], operator.add]
     pending_response: Optional[AIMessage]
     session_id: str
-    # New fields for multi-agent specialization
-    task_plan: Optional[str]
-    code_implementation: Optional[List[Dict[str, str]]]
-    test_results: Optional[List[Dict[str, Any]]]
-    error_logs: Optional[List[Dict[str, str]]]
-    documentation: Optional[str]
+    # Multi-agent specific fields
+    requirements: List[Dict[str, str]]
+    architecture_decisions: List[Dict[str, Any]]
+    code_components: Dict[str, str]
+    test_results: List[Dict[str, Any]]
+    documentation: Dict[str, str]
+    current_phase: str
+    # Fields for feedback and error handling
+    error_logs: List[Dict[str, str]]
+    architecture_feedback: List[Dict[str, str]]
+    code_feedback: List[Dict[str, str]]
+    test_feedback: List[Dict[str, str]]
+    documentation_feedback: List[Dict[str, str]]
+    pending_manager_review: bool
+
+# Keep AgentState for backward compatibility
+class AgentState(ProjectState):
+    """Legacy state type for backward compatibility."""
+    pass
 
 class BaseAgent:
     """Base class for shared agent functionality."""
@@ -105,7 +118,7 @@ class AgentGraph:
         self.tools = self.coding_agent.tools  # Reuse existing tool setup
         self._create_graph()
 
-    def _should_continue(self, state: AgentState) -> Literal["tool", END]:
+    def _should_continue(self, state: ProjectState) -> Literal["tool", END]:
         """Determine if tool execution is needed."""
         try:
             messages = state["messages"]
@@ -134,8 +147,8 @@ class AgentGraph:
             logger.error(f"Error in should_continue: {str(e)}", exc_info=True)
             raise
 
-    def _call_tool(self, state: AgentState) -> AgentState:
-        """Execute tool calls (unchanged from original)."""
+    def _call_tool(self, state: ProjectState) -> ProjectState:
+        """Execute tool calls."""
         try:
             messages = state["messages"]
             session_id = state.get("session_id", "default")
@@ -262,19 +275,42 @@ class AgentGraph:
             logger.error(f"Error in call_tool: {str(e)}", exc_info=True)
             raise
 
-    def _route(self, state: AgentState) -> str:
-        """Placeholder for multi-agent routing."""
+    def _route(self, state: ProjectState) -> str:
+        """Enhanced routing for multi-agent workflow."""
+        # Check for pending tool calls first
         if state.get("pending_response"):
             return "tool"
-        return END  # Will expand for multi-agent logic
+        
+        # Basic phase-based routing (will be expanded in later steps)
+        current_phase = state.get("current_phase", "requirements")
+        logger.debug(f"Current phase: {current_phase}")
+        
+        # For now, just return END as we haven't implemented other agents yet
+        return END  # Will expand for multi-agent logic in subsequent steps
+    
+    def _router_node(self, state: ProjectState) -> ProjectState:
+        """Router node that will direct flow between agents."""
+        logger.debug("Entering router node")
+        
+        # In future steps, this will determine which agent to call next
+        # based on the current phase and other state information
+        
+        # For now, just pass through the state
+        current_phase = state.get("current_phase", "requirements")
+        logger.debug(f"Current phase in router: {current_phase}")
+        
+        # Update any phase transitions if needed
+        # This will be expanded in later steps
+        
+        return state
 
     def _create_graph(self) -> None:
         """Create and compile the workflow graph."""
-        workflow = StateGraph(AgentState)
+        workflow = StateGraph(ProjectState)  # Use ProjectState instead of AgentState
         
         workflow.add_node("agent", self.coding_agent.process)
         workflow.add_node("tool", self._call_tool)
-        workflow.add_node("router", lambda state: state)  # Placeholder for routing
+        workflow.add_node("router", self._router_node)  # Use the router node function
         
         workflow.add_conditional_edges(
             "agent",
@@ -291,7 +327,7 @@ class AgentGraph:
         workflow.set_entry_point("agent")
         self.graph = workflow.compile()
 
-    def run(self, state: AgentState) -> AgentState:
+    def run(self, state: ProjectState) -> ProjectState:
         """Run the agent graph with the given state."""
         return self.graph.invoke(state)
 

@@ -4,6 +4,7 @@ from .base import BaseLLM
 from .openai_llm import OpenAILLM
 from .anthropic_llm import AnthropicLLM
 from .deepseek_llm import DeepSeekLLM
+from .mock_llm import MockLLM
 from ..config.llm_config import LLMConfig
 
 class LLMFactory:
@@ -13,6 +14,7 @@ class LLMFactory:
         'openai': OpenAILLM,
         'anthropic': AnthropicLLM,
         'deepseek': DeepSeekLLM,
+        'mock': MockLLM,  # Add mock LLM for testing
     }
     
     @classmethod
@@ -29,13 +31,14 @@ class LLMFactory:
             
         llm = llm_class(
             model_name=config.model_name,
-            temperature=config.temperature
+            temperature=config.temperature,
+            **(config.additional_params or {})
         )
         
         # Initialize the LLM
         llm.initialize()
         
-        # Store the LLM instance in the config
+        # Store the LLM instance in the config for reuse
         config.llm = llm
         
         return llm

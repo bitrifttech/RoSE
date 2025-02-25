@@ -8,7 +8,7 @@ import json
 import logging
 import traceback
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, SystemMessage
-from src.agent.graph import agent
+from src.agent.graph import agent, ProjectState
 from src.llm.factory import LLMFactory
 from src.config.llm_config import LLMConfig, DEFAULT_CONFIG
 
@@ -69,7 +69,7 @@ async def run_agent(request: Request):
         # Extract input and session ID
         user_input = data.get("input", "")
         session_id = data.get("session_id", "default")
-        phase = data.get("phase", "implementation")
+        phase = data.get("phase", "requirements")  # Default to requirements phase
         
         if not user_input:
             return JSONResponse(
@@ -77,7 +77,7 @@ async def run_agent(request: Request):
                 content={"error": "No input provided"}
             )
         
-        # Create initial state
+        # Create initial state with all fields for multi-agent support
         state = {
             "messages": [
                 HumanMessage(content=user_input)
@@ -86,23 +86,24 @@ async def run_agent(request: Request):
             "chat_history": [],
             "session_id": session_id,
             "current_phase": phase,
-            # Initialize other state fields
+            # Multi-agent specific fields
             "requirements": [],
             "architecture_decisions": [],
-            "code_changes": [],
+            "code_components": {},
             "test_results": [],
-            "review_comments": [],
-            "discussion_thread": [],
-            "action_items": [],
-            "blocking_issues": []
+            "documentation": {},
+            # Feedback fields
+            "error_logs": [],
+            "architecture_feedback": [],
+            "code_feedback": [],
+            "test_feedback": [],
+            "documentation_feedback": [],
+            "pending_manager_review": True  # Start with manager review
         }
         
         # Run the agent
         try:
             result = agent.run(state)
-            
-            # Get the latest decisions and artifacts from shared memory
-            context = {}
             
             # Format the response
             messages = result["messages"]
@@ -111,18 +112,26 @@ async def run_agent(request: Request):
                 None
             )
             
+            # Prepare artifacts for response
+            artifacts = {
+                "requirements": result.get("requirements", []),
+                "architecture_decisions": result.get("architecture_decisions", []),
+                "code_components": result.get("code_components", {}),
+                "test_results": result.get("test_results", []),
+                "documentation": result.get("documentation", {})
+            }
+            
             response = {
                 "response": last_message.content if last_message else "",
-                "context": context,
                 "phase": result.get("current_phase", phase),
-                "artifacts": {}
+                "artifacts": artifacts
             }
             
             logger.info(f"[Request: {request_id}] ✅ Request completed successfully")
             return JSONResponse(content=response)
             
         except Exception as e:
-            error_msg = f"Error running engineering team: {str(e)}"
+            error_msg = f"Error running agent: {str(e)}"
             logger.error(f"[Request: {request_id}] ❌ {error_msg}")
             logger.error(traceback.format_exc())
             return JSONResponse(

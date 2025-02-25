@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from langchain_core.messages import BaseMessage
+from typing import List, Dict, Any, Optional, Protocol
+from langchain_core.messages import BaseMessage, AIMessage
 
 class BaseLLM(ABC):
     """Base class for LLM implementations.
@@ -10,27 +10,20 @@ class BaseLLM(ABC):
     than in the agent graph.
     """
     
+    def __init__(self, model_name: str, temperature: float = 0.7, **kwargs):
+        """Initialize the LLM with model name and temperature."""
+        self.model_name = model_name
+        self.temperature = temperature
+        
     @abstractmethod
     def initialize(self) -> None:
-        """Initialize the LLM with necessary configurations."""
+        """Initialize the LLM (e.g., load API keys, set up client)."""
         pass
     
     @abstractmethod
-    def invoke(self, messages: List[BaseMessage], tools: List[Dict[str, Any]] = None) -> BaseMessage:
-        """Invoke the LLM with messages and optional tools.
-        
-        This method should handle all LLM-specific formatting internally,
-        providing a consistent interface to the agent graph.
-        
-        Args:
-            messages: List of messages in the conversation
-            tools: Optional list of tool configurations in a standard format
-                   (will be converted to LLM-specific format internally)
-            
-        Returns:
-            Response message from the LLM with standardized tool call format
-        """
-        pass
+    def invoke(self, messages: List[BaseMessage], tools: Optional[List[Dict[str, Any]]] = None) -> AIMessage:
+        """Invoke the LLM with messages and optional tools."""
+        raise NotImplementedError("Subclasses must implement this method")
     
     @abstractmethod
     def get_model_name(self) -> str:
@@ -38,12 +31,8 @@ class BaseLLM(ABC):
         pass
     
     def set_request_id(self, request_id: str) -> None:
-        """Set a request ID for logging and tracking.
-        
-        Args:
-            request_id: A unique identifier for the current request
-        """
-        self.request_id = request_id
+        """Set the request ID for logging."""
+        pass
     
     def format_tool_calls(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Format tool calls to a standardized format.
