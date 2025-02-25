@@ -60,17 +60,16 @@ async def run_agent(request: Request):
         
         # Generate request ID
         request_id = os.urandom(4).hex()
-        
-        # Pass request ID to LLM if supported
-        if hasattr(current_llm_config.llm, 'set_request_id'):
-            current_llm_config.llm.set_request_id(request_id)
-        
-        # Log current LLM configuration
         logger.info(f"[Request: {request_id}] 🚀 Starting request with LLM API: {current_llm_config.llm_type}, Model: {current_llm_config.model_name}")
+        
+        # Pass request ID to LLM
+        if current_llm_config.llm and hasattr(current_llm_config.llm, 'set_request_id'):
+            current_llm_config.llm.set_request_id(request_id)
         
         # Extract input and session ID
         user_input = data.get("input", "")
         session_id = data.get("session_id", "default")
+        phase = data.get("phase", "implementation")
         
         if not user_input:
             return JSONResponse(
@@ -78,19 +77,32 @@ async def run_agent(request: Request):
                 content={"error": "No input provided"}
             )
         
-        # Create initial state with chat history
+        # Create initial state
         state = {
             "messages": [
                 HumanMessage(content=user_input)
             ],
             "pending_response": None,
             "chat_history": [],
-            "session_id": session_id
+            "session_id": session_id,
+            "current_phase": phase,
+            # Initialize other state fields
+            "requirements": [],
+            "architecture_decisions": [],
+            "code_changes": [],
+            "test_results": [],
+            "review_comments": [],
+            "discussion_thread": [],
+            "action_items": [],
+            "blocking_issues": []
         }
         
         # Run the agent
         try:
             result = agent.run(state)
+            
+            # Get the latest decisions and artifacts from shared memory
+            context = {}
             
             # Format the response
             messages = result["messages"]
@@ -99,122 +111,31 @@ async def run_agent(request: Request):
                 None
             )
             
-            # Extract tool calls and responses
-            tool_calls = []
-            current_tool_call = None
-            
-            for msg in messages:
-                if isinstance(msg, AIMessage):
-                    tool_calls_data = msg.additional_kwargs.get('tool_calls', [])
-                    for tc in tool_calls_data:
-                        current_tool_call = {
-                            'id': tc.get('id'),
-                            'name': tc.get('function', {}).get('name'),
-                            'arguments': tc.get('function', {}).get('arguments'),
-                            'response': None
-                        }
-                        tool_calls.append(current_tool_call)
-                elif isinstance(msg, ToolMessage) and current_tool_call and msg.tool_call_id == current_tool_call['id']:
-                    current_tool_call['response'] = msg.content
-            
             response = {
-                'response': last_message.content if last_message else "No response generated",
-                'tool_calls': tool_calls,
-                'session_id': session_id
+                "response": last_message.content if last_message else "",
+                "context": context,
+                "phase": result.get("current_phase", phase),
+                "artifacts": {}
             }
             
-            # Update chat history
-            chat_history = result.get("chat_history", [])
-            chat_histories[session_id] = chat_history
-            
-            # Filter out the original message from the response
-            filtered_messages = [msg for msg in messages if not (
-                isinstance(msg, HumanMessage) and 
-                msg.content == user_input
-            ) and not isinstance(msg, SystemMessage)]  # Also filter out system messages
-            
-            # Deduplicate messages while preserving order
-            seen_contents = set()
-            deduplicated_messages = []
-            for msg in filtered_messages:
-                # Handle content that might be a list (e.g., from Claude)
-                content = msg.content
-                if isinstance(content, list):
-                    content = json.dumps(content, sort_keys=True)
-                
-                # For tool messages, include tool-specific fields in the key
-                if isinstance(msg, ToolMessage):
-                    msg_key = (
-                        msg.__class__.__name__,
-                        content,
-                        msg.tool_call_id,
-                        msg.name,
-                        # Convert any unhashable types to strings for the key
-                        json.dumps(msg.additional_kwargs, sort_keys=True) if msg.additional_kwargs else None
-                    )
-                else:
-                    msg_key = (
-                        msg.__class__.__name__,
-                        content,
-                        # Convert any unhashable types to strings for the key
-                        json.dumps(msg.additional_kwargs, sort_keys=True) if msg.additional_kwargs else None
-                    )
-                
-                if msg_key not in seen_contents:
-                    seen_contents.add(msg_key)
-                    deduplicated_messages.append(msg)
-            
-            # Properly serialize each message with all fields
-            serialized_messages = []
-            for msg in deduplicated_messages:
-                msg_dict = {
-                    "role": msg.__class__.__name__.replace("Message", "").lower(),
-                    "content": msg.content
-                }
-                
-                # Add tool-specific fields for tool messages
-                if isinstance(msg, ToolMessage):
-                    msg_dict.update({
-                        "tool_call_id": getattr(msg, "tool_call_id", None),
-                        "name": getattr(msg, "name", None)
-                    })
-                
-                # Add any additional kwargs (like tool_calls)
-                if hasattr(msg, "additional_kwargs") and msg.additional_kwargs:
-                    msg_dict.update(msg.additional_kwargs)
-                
-                serialized_messages.append(msg_dict)
-            
-            logger.debug(f"[Request: {request_id}] Serialized messages: {json.dumps(serialized_messages, indent=2)}")
-            logger.debug(f"[Request: {request_id}] Chat history for session {session_id}: {json.dumps(chat_history, indent=2)}")
-            
-            # Ensure we have at least one message in the response
-            if not serialized_messages:
-                serialized_messages = [{
-                    "role": "ai",
-                    "content": last_message.content
-                }]
-            
-            response.update({
-                "messages": serialized_messages,
-                "chat_history": chat_history
-            })
-            
+            logger.info(f"[Request: {request_id}] ✅ Request completed successfully")
             return JSONResponse(content=response)
             
         except Exception as e:
-            logger.error(f"[Request: {request_id}] Error in run_agent: {str(e)}")
-            logger.error(f"[Request: {request_id}] Traceback: {traceback.format_exc()}")
+            error_msg = f"Error running engineering team: {str(e)}"
+            logger.error(f"[Request: {request_id}] ❌ {error_msg}")
+            logger.error(traceback.format_exc())
             return JSONResponse(
                 status_code=500,
-                content={"error": f"Agent error: {str(e)}"}
+                content={"error": error_msg}
             )
-            
     except Exception as e:
-        logger.error(f"[Request: {request_id}] Error processing request: {str(e)}")
+        error_msg = f"Error processing request: {str(e)}"
+        logger.error(error_msg)
+        logger.error(traceback.format_exc())
         return JSONResponse(
-            status_code=400,
-            content={"error": f"Invalid request: {str(e)}"}
+            status_code=500,
+            content={"error": error_msg}
         )
 
 @app.get("/health")
@@ -250,31 +171,38 @@ async def get_llm_config():
     return current_llm_config.to_dict()
 
 @app.post("/api/llm/config")
-async def update_llm_config(config: LLMConfigInput):
-    """Update LLM configuration."""
+async def update_llm_config(config_input: LLMConfigInput):
+    """Update the LLM configuration."""
     global current_llm_config
-    global agent
     
     try:
         # Create new config
         new_config = LLMConfig(
-            llm_type=config.llm_type,
-            model_name=config.model_name,
-            temperature=config.temperature,
-            additional_params=config.additional_params
+            llm_type=config_input.llm_type,
+            model_name=config_input.model_name,
+            temperature=config_input.temperature,
+            additional_params=config_input.additional_params
         )
         
-        # Try to create LLM with new config to validate it
-        LLMFactory.create_llm(new_config)
+        # Create new LLM instance
+        new_llm = LLMFactory.create_llm(new_config)
         
-        # If successful, update current config and recreate agent
+        # Update global config
         current_llm_config = new_config
-        agent = agent.__class__(llm_config=current_llm_config)
         
-        return {"status": "success", "config": current_llm_config.to_dict()}
+        # Log the change
+        logger.info(f"LLM configuration updated: {current_llm_config.to_dict()}")
+        
+        return JSONResponse(content={
+            "status": "success",
+            "config": current_llm_config.to_dict()
+        })
     except Exception as e:
-        logger.error(f"Error updating LLM config: {str(e)}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Error updating LLM config: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": f"Failed to update LLM configuration: {str(e)}"}
+        )
 
 if __name__ == "__main__":
     import uvicorn

@@ -52,11 +52,15 @@ class BaseAgent:
             session_id = state.get("session_id", "default")
             chat_history = self.get_chat_history(session_id)
 
+            # Add system message if not present
             if len(messages) == 1 and isinstance(messages[0], HumanMessage):
                 messages = [SystemMessage(content=self.system_prompt)] + messages
                 state["messages"] = messages
 
+            # Combine chat history with current messages
             all_messages = list(chat_history.messages) + messages
+            
+            # Prepare tools in standard format
             tools_for_model = [{
                 "function": {
                     "name": tool.name,
@@ -65,18 +69,22 @@ class BaseAgent:
                 }
             } for tool in self.tools]
 
+            # Invoke the LLM - each LLM implementation handles its specific formatting
             response = self.llm.invoke(all_messages, tools=tools_for_model)
-            logger.debug(f"LLM response: {json.dumps({'content': response.content, 'kwargs': response.additional_kwargs}, indent=2)}")
+            logger.debug(f"LLM response: {json.dumps({'content': response.content, 'kwargs': response.additional_kwargs}, indent=2, default=str)}")
 
+            # Check for duplicate response
             if any(isinstance(msg, AIMessage) and msg.content == response.content and 
                    msg.additional_kwargs == response.additional_kwargs for msg in messages):
                 logger.debug("Duplicate response detected")
                 return {**state, "pending_response": None}
 
+            # Handle tool calls
             if response.additional_kwargs.get('tool_calls'):
                 logger.debug("Found tool calls, storing in pending_response")
                 return {**state, "pending_response": response}
 
+            # Add response to chat history and return updated state
             chat_history.add_message(response)
             return {**state, "messages": messages + [response], "pending_response": None}
         except Exception as e:

@@ -1,9 +1,9 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import os
 import logging
 import json
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import BaseMessage, AIMessage, ToolMessage
+from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, HumanMessage, SystemMessage
 
 from .base import BaseLLM
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class AnthropicLLM(BaseLLM):
     """Anthropic (Claude) implementation of the LLM interface using LangChain."""
     
-    def __init__(self, model_name: str = "claude-3-opus-20240229", temperature: float = 0.7, max_tokens: int = 4096):
+    def __init__(self, model_name: str = "claude-3-5-sonnet-20241022", temperature: float = 0.7, max_tokens: int = 4096):
         self.model_name = model_name
         self.temperature = temperature
         self.max_tokens = max_tokens
@@ -46,30 +46,41 @@ class AnthropicLLM(BaseLLM):
             }
             formatted_tools.append(formatted_tool)
             
-        logger.debug(f"Formatted tools for Anthropic: {formatted_tools}")
+        log_prefix = f"[Request: {self.request_id}]" if self.request_id else ""
+        logger.debug(f"{log_prefix} Formatted tools for Anthropic: {formatted_tools}")
         return formatted_tools
         
     def _format_messages_for_anthropic(self, messages: List[BaseMessage]) -> List[Dict[str, Any]]:
         """Format messages to match Anthropic's expected schema."""
         formatted_messages = []
         
-        for msg in messages:
-            if isinstance(msg, ToolMessage):
-                # Format tool message as a user message with tool_result content
-                formatted_msg = {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": msg.tool_call_id,
-                            "content": str(msg.content)  # Ensure content is string
-                        }
-                    ]
-                }
-                if msg.additional_kwargs.get("is_error"):
-                    formatted_msg["content"][0]["is_error"] = True
-            elif isinstance(msg, AIMessage):
-                # Handle AI messages with tool calls
+        # If no messages provided, return a default user message
+        if not messages:
+            logger.warning("No messages provided to format for Anthropic. Adding a default user message.")
+            return [{"role": "user", "content": [{"type": "text", "text": "Hello"}]}]
+        
+        # Track tool calls that need responses
+        pending_tool_calls = {}
+        tool_messages_by_id = {}
+        
+        # First pass: collect all messages and track tool calls and tool messages
+        for i, msg in enumerate(messages):
+            if isinstance(msg, AIMessage) and msg.additional_kwargs.get('tool_calls'):
+                for tool_call in msg.additional_kwargs['tool_calls']:
+                    pending_tool_calls[tool_call['id']] = {
+                        'tool_call': tool_call,
+                        'ai_message_index': i
+                    }
+            elif isinstance(msg, ToolMessage):
+                tool_messages_by_id[msg.tool_call_id] = msg
+        
+        # Second pass: format messages and handle tool results
+        i = 0
+        while i < len(messages):
+            msg = messages[i]
+            
+            if isinstance(msg, AIMessage):
+                # Format AI message
                 content_blocks = []
                 
                 # Add text content if present
@@ -77,36 +88,88 @@ class AnthropicLLM(BaseLLM):
                     content_blocks.append({"type": "text", "text": str(msg.content)})
                 
                 # Add tool calls if present
+                tool_call_ids = []
                 if msg.additional_kwargs.get("tool_calls"):
                     for tool_call in msg.additional_kwargs["tool_calls"]:
                         tool_use = {
                             "type": "tool_use",
                             "id": tool_call["id"],
-                            "name": tool_call["name"],
+                            "name": tool_call["function"]["name"],
                             "input": json.loads(tool_call["function"]["arguments"])
                         }
                         content_blocks.append(tool_use)
+                        tool_call_ids.append(tool_call["id"])
                 
+                # Only add the message if it has content
+                if content_blocks:
+                    formatted_msg = {
+                        "role": "assistant",
+                        "content": content_blocks
+                    }
+                    formatted_messages.append(formatted_msg)
+                
+                    # If this message has tool calls, the next message must be a user message with tool results
+                    if tool_call_ids:
+                        # Collect all tool results for these tool calls
+                        tool_results = []
+                        for tool_id in tool_call_ids:
+                            if tool_id in tool_messages_by_id:
+                                tool_msg = tool_messages_by_id[tool_id]
+                                tool_results.append({
+                                    "type": "tool_result",
+                                    "tool_use_id": tool_id,
+                                    "content": str(tool_msg.content)
+                                })
+                        
+                        # If we have tool results, add them as a user message
+                        if tool_results:
+                            formatted_messages.append({
+                                "role": "user",
+                                "content": tool_results
+                            })
+            elif isinstance(msg, ToolMessage):
+                # Tool messages are handled in the AI message processing
+                pass
+            elif isinstance(msg, SystemMessage):
+                # Format system message
                 formatted_msg = {
-                    "role": "assistant",  # Claude expects 'assistant' not 'ai'
-                    "content": content_blocks
+                    "role": "system",
+                    "content": [{"type": "text", "text": str(msg.content)}]
                 }
+                formatted_messages.append(formatted_msg)
+            elif isinstance(msg, HumanMessage):
+                # Format human message as user
+                formatted_msg = {
+                    "role": "user",
+                    "content": [{"type": "text", "text": str(msg.content)}]
+                }
+                formatted_messages.append(formatted_msg)
             else:
-                # Format regular messages (system, human)
+                # Format other messages generically
                 role = msg.__class__.__name__.replace("Message", "").lower()
-                # Map 'system' and 'human' roles correctly
-                if role == "system":
-                    role = "system"
-                elif role == "human":
+                # Map roles correctly
+                if role == "human":
                     role = "user"
                 
                 formatted_msg = {
                     "role": role,
                     "content": [{"type": "text", "text": str(msg.content)}]
                 }
-            formatted_messages.append(formatted_msg)
+                formatted_messages.append(formatted_msg)
             
-        logger.debug(f"Formatted messages for Anthropic: {formatted_messages}")
+            i += 1
+        
+        # Ensure we have at least one message
+        if not formatted_messages:
+            logger.warning("No formatted messages were created. Adding a default user message.")
+            formatted_messages.append({
+                "role": "user", 
+                "content": [{"type": "text", "text": "Hello"}]
+            })
+        
+        # Log the formatted messages for debugging
+        log_prefix = f"[Request: {self.request_id}]" if self.request_id else ""
+        logger.debug(f"{log_prefix} Formatted messages for Anthropic: {json.dumps(formatted_messages, indent=2, default=str)}")
         return formatted_messages
         
     def initialize(self) -> None:
@@ -134,18 +197,15 @@ class AnthropicLLM(BaseLLM):
         logger.info(f"{log_prefix} Making API call to Anthropic with model {self.model_name}")
         
         # Format tools if present
-        formatted_tools = None
-        if tools:
-            formatted_tools = self._format_tools_for_anthropic(tools)
-            logger.debug(f"{log_prefix} Using tools: {formatted_tools}")
-            
-        # Pre-process messages to handle system messages
+        formatted_tools = self._format_tools_for_anthropic(tools) if tools else None
+        
+        # Process messages
         processed_messages = []
         system_message = None
         
         # First pass: collect system message and clean history
         for msg in messages:
-            if msg.type == "system":
+            if isinstance(msg, SystemMessage):
                 # Keep only the last system message
                 system_message = msg
             else:
@@ -154,6 +214,11 @@ class AnthropicLLM(BaseLLM):
         # Add system message at the beginning if present
         if system_message:
             processed_messages.insert(0, system_message)
+        
+        # Ensure we have at least one message
+        if not processed_messages and not system_message:
+            logger.warning(f"{log_prefix} No messages provided to invoke. Adding a default human message.")
+            processed_messages.append(HumanMessage(content="Hello"))
             
         # Format messages for Anthropic
         formatted_messages = self._format_messages_for_anthropic(processed_messages)
@@ -189,6 +254,9 @@ class AnthropicLLM(BaseLLM):
                     content=text_content,
                     additional_kwargs={"tool_calls": tool_calls} if tool_calls else {}
                 )
+            
+            # Log the response for debugging
+            logger.debug(f"{log_prefix} Anthropic response: {json.dumps({'content': response.content, 'kwargs': response.additional_kwargs}, indent=2, default=str)}")
             
             return response
             
