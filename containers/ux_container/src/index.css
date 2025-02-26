@@ -64,15 +64,45 @@ body {
   @apply h-full;
 }
 
-/* Modern card hover effects with updated gradient */
-.card {
-  @apply transition-all duration-300;
+/* Enhanced Card Styles */
+.card, 
+div[class*="rounded-xl"],
+div[class*="rounded-lg"] {
+  @apply transition-all duration-300 backdrop-blur-sm;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 
+              0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+              0 0 20px rgba(0, 0, 0, 0.2) inset;
 }
 
 .card:hover {
   @apply shadow-lg;
   background: linear-gradient(102.3deg, rgba(59, 130, 246, 0.8) 5.9%, rgba(56, 189, 248, 0.8) 64%, rgba(125, 211, 252, 0.8) 89%);
   background-clip: padding-box;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 
+              0 0 0 1px rgba(255, 255, 255, 0.1) inset,
+              0 0 30px rgba(59, 130, 246, 0.2) inset;
+}
+
+/* Panel Styles */
+[data-panel] > div {
+  @apply p-4;
+}
+
+/* Header and Section Styles */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-semibold tracking-tight;
+}
+
+h1 {
+  @apply text-2xl;
+}
+
+h2 {
+  @apply text-xl;
+}
+
+h3 {
+  @apply text-lg;
 }
 
 /* Enhanced button styles with dynamic gradients */
@@ -152,7 +182,14 @@ button[class*="size-icon"]:hover svg {
 
 /* Glass morphism effects */
 .glass {
-  @apply bg-white/20 backdrop-blur-lg border border-white/30 shadow-xl;
+  @apply bg-white/10 backdrop-blur-lg border border-white/10 shadow-xl;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 
+              0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+/* Enhanced borders */
+[class*="border"] {
+  border-color: rgba(255, 255, 255, 0.05);
 }
 
 /* Modern scrollbar */
@@ -225,6 +262,7 @@ button[class*="size-icon"]:hover svg {
   left: 0;
 }
 
+/* Enhanced animations */
 @keyframes typing {
   from { width: 0 }
   to { width: 100% }
@@ -257,11 +295,44 @@ button[class*="size-icon"]:hover svg {
   }
 }
 
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
 .typing-animation {
   display: inline-block;
   overflow: hidden;
   white-space: nowrap;
   animation: typing 2s steps(40, end);
+}
+
+/* Terminal styling */
+div[class*="Terminal"] {
+  @apply rounded-lg overflow-hidden;
+}
+
+/* Form element styling */
+input, select, textarea {
+  @apply bg-background/50 border border-border/50 rounded-md px-3 py-2 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all duration-200;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) inset;
+}
+
+/* Dialog and modal styling */
+[role="dialog"] {
+  @apply backdrop-blur-md;
+}
+
+[role="dialog"] > div {
+  @apply shadow-2xl border border-white/5 rounded-xl overflow-hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 /* Other utilities and animations can be added here */

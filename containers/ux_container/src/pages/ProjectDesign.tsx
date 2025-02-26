@@ -398,8 +398,8 @@ console.log("Hello, World!");`);
   }, [refreshContainers]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#f8fafc] via-[#e2e8f0] to-[#f1f5f9] dark:from-[#121820] dark:via-[#1a2536] dark:to-[#162032]">
-      <div className="flex items-center justify-between p-4 border-b border-[#cbd5e1]/30 dark:border-[#1e293b]/80 bg-white/10 backdrop-blur-md dark:bg-black/10">
+    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#121820] via-[#1a2536] to-[#162032]">
+      <div className="flex items-center justify-between p-4 border-b border-white/5 bg-black/10 backdrop-blur-md shadow-md">
         <div className="flex items-center space-x-4">
           <Button 
             variant="ghost" 
@@ -409,10 +409,12 @@ console.log("Hello, World!");`);
           >
             <ArrowLeft className="h-4 w-4 text-foreground" />
           </Button>
-          <h1 className="text-sm font-medium text-[#334155] dark:text-white/90">{project?.name || 'Loading...'}</h1>
-          {project?.description && (
-            <p className="text-xs text-[#64748b]/70 dark:text-white/50">{project.description}</p>
-          )}
+          <div>
+            <h1 className="text-base font-semibold text-foreground/90">{project?.name || 'Loading...'}</h1>
+            {project?.description && (
+              <p className="text-xs text-foreground/50 mt-0.5">{project.description}</p>
+            )}
+          </div>
         </div>
         <div className="flex items-center space-x-3">
           {id && <ProjectVersionsDialog projectId={parseInt(id)} />}
@@ -466,48 +468,48 @@ console.log("Hello, World!");`);
           <PanelGroup direction="horizontal" className="h-full">
             <Panel defaultSize={25} minSize={12} maxSize={50}>
               <div className="h-full flex flex-col">
-                <div className="flex-none flex justify-center p-4 mb-4">
-                  <div className="w-44 h-44 relative">
+                <div className="flex-none flex justify-center p-4 mb-2">
+                  <div className="w-40 h-40 relative">
                     {/* Base white glow */}
-                    <div className="absolute inset-0 bg-white dark:bg-white opacity-60 dark:opacity-40 rounded-full blur-2xl"></div>
+                    <div className="absolute inset-0 bg-primary opacity-10 rounded-full blur-2xl"></div>
                     {/* Middle layer */}
-                    <div className="absolute inset-2 bg-white dark:bg-white opacity-50 dark:opacity-30 rounded-full blur-xl"></div>
+                    <div className="absolute inset-2 bg-primary opacity-10 rounded-full blur-xl"></div>
                     {/* Inner glow */}
-                    <div className="absolute inset-4 bg-white dark:bg-white opacity-40 dark:opacity-20 rounded-full blur-lg"></div>
+                    <div className="absolute inset-4 bg-primary opacity-10 rounded-full blur-lg"></div>
                     {/* Logo */}
-                    <img src="/rose_logo1.png" alt="Rose Logo" className="h-44 w-auto object-contain relative z-10" />
+                    <img src="/rose_logo1.png" alt="Rose Logo" className="h-40 w-auto object-contain relative z-10" />
                   </div>
                 </div>
                 <div className="flex-1 min-h-0 px-4 pb-4">
-                  <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
+                  <div className="h-full rounded-xl border border-white/5 bg-black/20 backdrop-blur-md shadow-lg">
                     <Chat />
                   </div>
                 </div>
               </div>
             </Panel>
 
-            <PanelResizeHandle className="w-2 hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10 transition-colors">
-              <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
+            <PanelResizeHandle className="w-2 hover:bg-primary/20 transition-colors">
+              <div className="w-px h-full bg-white/5 mx-auto" />
             </PanelResizeHandle>
 
             <Panel defaultSize={75} minSize={30}>
               <div className="h-full p-4">
-                <div className="h-full rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg">
+                <div className="h-full rounded-xl border border-white/5 bg-black/20 backdrop-blur-md shadow-lg">
                   <Tabs defaultValue="editor" className="h-full flex flex-col">
-                    <TabsList className="flex-none grid w-full grid-cols-2">
+                    <TabsList className="flex-none grid w-full grid-cols-2 m-2">
                       <TabsTrigger value="editor">Code Editor</TabsTrigger>
                       <TabsTrigger value="preview">Preview</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="editor" className="flex-1 mt-0">
-                      <div className="h-full p-4">
+                    <TabsContent value="editor" className="flex-1 mt-0 p-2">
+                      <div className="h-full">
                         <PanelGroup direction="horizontal" className="h-full">
                           <Panel defaultSize={20} minSize={15}>
                             <FileExplorer onFileSelect={handleFileSelect} />
                           </Panel>
 
-                          <PanelResizeHandle className="w-2 hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10 transition-colors">
-                            <div className="w-px h-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
+                          <PanelResizeHandle className="w-2 hover:bg-primary/20 transition-colors">
+                            <div className="w-px h-full bg-white/5 mx-auto" />
                           </PanelResizeHandle>
 
                           <Panel defaultSize={80} minSize={30}>
@@ -519,7 +521,7 @@ console.log("Hello, World!");`);
                                 onTabClose={handleTabClose}
                               />
                               {activeTabId && (
-                                <div className="flex-1 min-h-0">
+                                <div className="flex-1 min-h-0 rounded-md overflow-hidden border border-white/5">
                                   <CodeEditor 
                                     value={openTabs.find(t => t.id === activeTabId)?.content ?? ''}
                                     onChange={debouncedHandleCodeChange}
@@ -535,8 +537,8 @@ console.log("Hello, World!");`);
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="preview" className="flex-1 mt-0">
-                      <div className="h-full p-4">
+                    <TabsContent value="preview" className="flex-1 mt-0 p-2">
+                      <div className="h-full rounded-md overflow-hidden border border-white/5">
                         <PreviewWindow url="http://localhost:8040" />
                       </div>
                     </TabsContent>
@@ -547,15 +549,15 @@ console.log("Hello, World!");`);
           </PanelGroup>
         </Panel>
 
-        <PanelResizeHandle className="h-2 hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10 transition-colors">
-          <div className="h-px w-full bg-[#b8c7e0]/20 dark:bg-white/10 mx-auto" />
+        <PanelResizeHandle className="h-2 hover:bg-primary/20 transition-colors">
+          <div className="h-px w-full bg-white/5 mx-auto" />
         </PanelResizeHandle>
 
         <Panel defaultSize={30} minSize={20}>
           <div className="h-full flex flex-col bg-background">
             <div className="flex-1 min-h-0 p-4 flex flex-col">
               {/* Terminal Controls Bar */}
-              <div className="flex-none flex items-center justify-between py-2 px-1">
+              <div className="flex-none flex items-center justify-between py-2 px-3 mb-2 rounded-lg bg-black/30 border border-white/5 backdrop-blur-sm">
                 {/* Left side: Container and Server Controls */}
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -569,11 +571,11 @@ console.log("Hello, World!");`);
                     />
                     <ConnectionStatus isConnected={isConnected} />
                   </div>
-                  <div className="h-8 w-px bg-[#b8c7e0]/20 dark:bg-white/10" />
+                  <div className="h-8 w-px bg-white/5" />
                   <div className="flex items-center gap-2">
                     <ServerControls />
                   </div>
-                  <div className="h-8 w-px bg-[#b8c7e0]/20 dark:bg-white/10" />
+                  <div className="h-8 w-px bg-white/5" />
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -611,15 +613,15 @@ console.log("Hello, World!");`);
 
               {/* Container Info Panel */}
               {showContainerInfo && (
-                <div className="flex-none py-2 mt-2 border-t border-[#b8c7e0]/40 dark:border-white/10">
+                <div className="flex-none py-2 mb-2 px-3 rounded-lg border border-white/5 bg-black/20 backdrop-blur-sm">
                   <ContainerList containers={containers} error={containerError} />
                 </div>
               )}
 
               {/* Terminal Window */}
-              <div className="flex-1 mt-2 min-h-0 rounded-xl border border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 dark:bg-black/20 backdrop-blur-md shadow-lg overflow-hidden">
+              <div className="flex-1 min-h-0 rounded-xl border border-white/5 bg-black/20 backdrop-blur-md shadow-lg overflow-hidden">
                 <div className="h-full flex flex-col">
-                  <div className="flex-none flex items-center justify-between px-3 py-1.5 border-b border-[#b8c7e0]/20 dark:border-white/10 bg-white/5 dark:bg-white/5">
+                  <div className="flex-none flex items-center justify-between px-3 py-1.5 border-b border-white/5 bg-black/30">
                     <div className="flex space-x-1.5">
                       <div className="h-2.5 w-2.5 rounded-full bg-red-500/70 hover:bg-red-500 transition-colors"></div>
                       <div className="h-2.5 w-2.5 rounded-full bg-yellow-500/70 hover:bg-yellow-500 transition-colors"></div>
