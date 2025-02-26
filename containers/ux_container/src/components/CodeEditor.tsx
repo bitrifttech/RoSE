@@ -61,13 +61,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       inherit: true,
       rules: [],
       colors: {
-        'editor.background': '#15181E',
-        'editor.foreground': '#D4D4D4',
-        'editorLineNumber.foreground': '#6B7280',
-        'editor.lineHighlightBackground': '#2A2E36',
-        'editorGutter.background': '#15181E',
-        'dropdown.background': '#15181E',
-        'input.background': '#15181E',
+        'editor.background': '#121820',
+        'editor.foreground': '#E2E8F0',
+        'editorLineNumber.foreground': '#64748B',
+        'editor.lineHighlightBackground': '#1E293B',
+        'editorGutter.background': '#121820',
+        'dropdown.background': '#121820',
+        'input.background': '#1E293B',
       }
     });
 

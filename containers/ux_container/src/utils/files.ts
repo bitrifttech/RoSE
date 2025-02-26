@@ -30,40 +30,40 @@ const codeExtensions = [
 
 export function getFileIcon(path: string, isDirectory: boolean): FileIconInfo {
   if (isDirectory) {
-    return { icon: FolderIcon, color: '#FFB626' };
+    return { icon: FolderIcon, color: '#3B82F6' };
   }
 
   const extension = path.split('.').pop()?.toLowerCase() || '';
   
   if (imageExtensions.includes(extension)) {
-    return { icon: ImageIcon, color: '#4CAF50' };
+    return { icon: ImageIcon, color: '#38BDF8' };
   }
   
   if (videoExtensions.includes(extension)) {
-    return { icon: VideoIcon, color: '#E91E63' };
+    return { icon: VideoIcon, color: '#0EA5E9' };
   }
   
   if (audioExtensions.includes(extension)) {
-    return { icon: Music2Icon, color: '#9C27B0' };
+    return { icon: Music2Icon, color: '#0284C7' };
   }
   
   if (archiveExtensions.includes(extension)) {
-    return { icon: ArchiveIcon, color: '#795548' };
+    return { icon: ArchiveIcon, color: '#0369A1' };
   }
   
   if (codeExtensions.includes(extension)) {
-    return { icon: Code2Icon, color: '#2196F3' };
+    return { icon: Code2Icon, color: '#60A5FA' };
   }
   
   if (extension === 'pdf') {
-    return { icon: DocumentIcon, color: '#F44336' };
+    return { icon: DocumentIcon, color: '#93C5FD' };
   }
   
   if (extension === 'txt' || extension === 'md') {
-    return { icon: FileTextIcon, color: '#607D8B' };
+    return { icon: FileTextIcon, color: '#BAE6FD' };
   }
   
-  return { icon: FileIcon, color: '#9E9E9E' };
+  return { icon: FileIcon, color: '#7DD3FC' };
 }
 
 export function sortFiles(files: any[]): any[] {

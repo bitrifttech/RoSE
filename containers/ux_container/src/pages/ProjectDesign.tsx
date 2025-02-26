@@ -399,14 +399,14 @@ console.log("Hello, World!");`);
   }, [refreshContainers]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#1a1f2c] dark:via-[#1f2937] dark:to-[#2d1f2f]">
-      <div className="flex items-center justify-between p-4 border-b border-[#b8c7e0]/30 dark:border-white/10 bg-white/10 backdrop-blur-md dark:bg-black/10">
+    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#121820] dark:via-[#1a2536] dark:to-[#162032]">
+      <div className="flex items-center justify-between p-4 border-b border-[#b8c7e0]/30 dark:border-[#1e293b]/80 bg-white/10 backdrop-blur-md dark:bg-black/10">
         <div className="flex items-center space-x-4">
           <Button 
             variant="ghost" 
             size="icon"
             onClick={() => navigate('/')}
-            className="hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10"
+            className="hover:bg-[#d8e3f3]/50 dark:hover:bg-[#1e293b]/50"
           >
             <ArrowLeft className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
           </Button>
@@ -452,7 +452,7 @@ console.log("Hello, World!");`);
             variant="ghost"
             size="icon"
             onClick={() => setShowSettings(prev => !prev)}
-            className="hover:bg-[#d8e3f3]/50 dark:hover:bg-white/10"
+            className="hover:bg-[#d8e3f3]/50 dark:hover:bg-[#1e293b]/50"
           >
             <Settings2 className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
           </Button>
