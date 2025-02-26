@@ -77,10 +77,40 @@ body {
 
 /* Enhanced button styles with dynamic gradients */
 button {
-  @apply transition-all duration-500 relative overflow-hidden;
+  @apply transition-all duration-300 relative overflow-hidden;
   background-size: 200% 200%;
+  position: relative;
 }
 
+/* Button hover and active states */
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Button ripple effect */
+button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.4);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%, -50%);
+  transform-origin: 50% 50%;
+}
+
+button:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+/* Button gradient animation */
 button:not(.no-gradient) {
   background-image: linear-gradient(
     225deg,
@@ -99,6 +129,19 @@ button:hover:not(.no-gradient) {
 button:active:not(.no-gradient) {
   @apply shadow-inner;
   background-position: left center;
+}
+
+/* Icon button styles */
+button[class*="size-icon"] {
+  @apply flex items-center justify-center;
+}
+
+button[class*="size-icon"] svg {
+  @apply transition-transform duration-200;
+}
+
+button[class*="size-icon"]:hover svg {
+  transform: scale(1.1);
 }
 
 /* Gradient text effects */
@@ -196,6 +239,21 @@ button:active:not(.no-gradient) {
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0.5;
+  }
+  20% {
+    transform: scale(25, 25);
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(40, 40);
   }
 }
 

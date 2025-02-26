@@ -405,16 +405,16 @@ console.log("Hello, World!");`);
             variant="ghost" 
             size="icon"
             onClick={() => navigate('/')}
-            className="hover:bg-[#e2e8f0]/50 dark:hover:bg-[#1e293b]/50"
+            className="hover:bg-[#1e293b]/50 rounded-full"
           >
-            <ArrowLeft className="h-4 w-4 text-[#334155] dark:text-white/70" />
+            <ArrowLeft className="h-4 w-4 text-foreground" />
           </Button>
           <h1 className="text-sm font-medium text-[#334155] dark:text-white/90">{project?.name || 'Loading...'}</h1>
           {project?.description && (
             <p className="text-xs text-[#64748b]/70 dark:text-white/50">{project.description}</p>
           )}
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           {id && <ProjectVersionsDialog projectId={parseInt(id)} />}
           <input
             type="file"
@@ -428,6 +428,7 @@ console.log("Hello, World!");`);
             size="icon"
             onClick={() => document.getElementById('app-upload')?.click()}
             title="Upload Project"
+            className="rounded-full"
           >
             <Upload className="h-4 w-4 text-foreground" />
           </Button>
@@ -436,6 +437,7 @@ console.log("Hello, World!");`);
             size="icon"
             onClick={() => downloadApp()}
             title="Download Project"
+            className="rounded-full"
           >
             <Download className="h-4 w-4 text-foreground" />
           </Button>
@@ -444,6 +446,7 @@ console.log("Hello, World!");`);
             size="icon"
             onClick={() => setShowSaveDialog(true)}
             title="Save Project"
+            className="rounded-full"
           >
             <Save className="h-4 w-4 text-foreground" />
           </Button>
@@ -451,7 +454,7 @@ console.log("Hello, World!");`);
             variant="ghost"
             size="icon"
             onClick={() => setShowSettings(prev => !prev)}
-            className="hover:bg-[#1e293b]/50"
+            className="hover:bg-[#1e293b]/50 rounded-full"
           >
             <Settings2 className="h-4 w-4 text-foreground" />
           </Button>
