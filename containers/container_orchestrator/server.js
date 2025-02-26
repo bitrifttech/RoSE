@@ -10,6 +10,21 @@ const app = express();
 const PORT = 8080;
 const docker = new Docker();
 
+// Add database connection check
+async function checkDatabaseConnection() {
+  try {
+    console.log('🔄 Testing database connection...');
+    // Try a simple query to check connection
+    await prisma.$queryRaw`SELECT 1`;
+    console.log('✅ Database connection successful!');
+    return true;
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    console.error('Please check your DATABASE_URL environment variable and ensure PostgreSQL is running.');
+    return false;
+  }
+}
+
 // Debug middleware
 app.use((req, res, next) => {
   console.log(`[DEBUG] ${req.method} ${req.path}`);
@@ -23,6 +38,16 @@ app.use((req, res, next) => {
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Database status route
+app.get('/api/status/database', async (req, res) => {
+  const isConnected = await checkDatabaseConnection();
+  if (isConnected) {
+    res.json({ status: 'connected' });
+  } else {
+    res.status(500).json({ status: 'disconnected', error: 'Database connection failed' });
+  }
+});
 
 // Routes
 app.use('/api/users', userRoutes);
@@ -248,7 +273,7 @@ app.delete('/api/container/:containerId', async (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('[ERROR]', err);
-  res.status(500).json({ error: err.message });
+  res.status(500).json({ error: 'Internal Server Error', message: err.message });
 });
 
 // 404 handler
@@ -257,20 +282,37 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
-// Wait for database connection before starting server
+// Start the server with database connection check
 async function startServer() {
-  try {
-    // Test database connection
-    await prisma.$connect();
-    console.log('Successfully connected to database');
-
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Failed to connect to database:', error);
-    process.exit(1);
+  const dbConnected = await checkDatabaseConnection();
+  
+  if (!dbConnected) {
+    console.error('❌ Server startup aborted due to database connection failure.');
+    console.error('Please check your database configuration and try again.');
+    // Exit with error code in production, but allow development to continue
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    } else {
+      console.warn('⚠️ Running in development mode - continuing despite database error');
+    }
   }
+  
+  app.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
+  });
 }
 
 startServer();
+
+// Handle graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully');
+  await prisma.$disconnect();
+  process.exit(0);
+});

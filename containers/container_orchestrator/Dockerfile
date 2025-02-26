@@ -9,6 +9,7 @@ COPY package*.json ./
 
 # Install dependencies
 RUN npm install
+RUN npm install bcryptjs
 
 # Generate Prisma Client
 COPY prisma ./prisma/
