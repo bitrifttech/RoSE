@@ -429,7 +429,7 @@ console.log("Hello, World!");`);
             onClick={() => document.getElementById('app-upload')?.click()}
             title="Upload Project"
           >
-            <Upload className="h-4 w-4 text-[#334155] dark:text-white/70" />
+            <Upload className="h-4 w-4 text-foreground" />
           </Button>
           <Button
             variant="outline"
@@ -437,7 +437,7 @@ console.log("Hello, World!");`);
             onClick={() => downloadApp()}
             title="Download Project"
           >
-            <Download className="h-4 w-4 text-[#334155] dark:text-white/70" />
+            <Download className="h-4 w-4 text-foreground" />
           </Button>
           <Button
             variant="outline"
@@ -445,15 +445,15 @@ console.log("Hello, World!");`);
             onClick={() => setShowSaveDialog(true)}
             title="Save Project"
           >
-            <Save className="h-4 w-4 text-[#334155] dark:text-white/70" />
+            <Save className="h-4 w-4 text-foreground" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowSettings(prev => !prev)}
-            className="hover:bg-[#e2e8f0]/50 dark:hover:bg-[#1e293b]/50"
+            className="hover:bg-[#1e293b]/50"
           >
-            <Settings2 className="h-4 w-4 text-[#334155] dark:text-white/70" />
+            <Settings2 className="h-4 w-4 text-foreground" />
           </Button>
         </div>
       </div>
