@@ -4,47 +4,6 @@
 
 @layer base {
   :root {
-    --background: 220 30% 98%;
-    --foreground: 224 71% 4%;
-    
-    --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
-    
-    --popover: 220 25% 99%;
-    --popover-foreground: 224 71% 4%;
-    
-    --primary: 280 100% 60%;
-    --primary-foreground: 210 40% 98%;
-    
-    --secondary: 187 100% 42%;
-    --secondary-foreground: 220 40% 98%;
-    
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 8.9% 46.1%;
-    
-    --accent: 326 100% 60%;
-    --accent-foreground: 210 40% 98%;
-    
-    --destructive: 0 100% 60%;
-    --destructive-foreground: 210 40% 98%;
-    
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 280 100% 60%;
-    
-    --radius: 1rem;
-
-    --sidebar-background: 220 25% 99%;
-    --sidebar-foreground: 224 71% 4%;
-    --sidebar-primary: 280 100% 60%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 326 100% 60%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 280 100% 60%;
-  }
-
-  .dark {
     --background: 220 25% 10%;
     --foreground: 210 40% 98%;
 
@@ -94,9 +53,9 @@ body {
     linear-gradient(
       to bottom right,
       hsl(var(--background)) 0%,
-      hsl(220 30% 97%) 25%,
-      hsl(225 30% 96%) 50%,
-      hsl(230 30% 97%) 75%,
+      hsl(222 25% 12%) 25%,
+      hsl(220 25% 14%) 50%,
+      hsl(218 25% 12%) 75%,
       hsl(var(--background)) 100%
     );
 }
@@ -112,7 +71,7 @@ body {
 
 .card:hover {
   @apply shadow-lg;
-  background: linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%);
+  background: linear-gradient(102.3deg, rgba(59, 130, 246, 0.8) 5.9%, rgba(56, 189, 248, 0.8) 64%, rgba(125, 211, 252, 0.8) 89%);
   background-clip: padding-box;
 }
 
@@ -144,7 +103,7 @@ button:active:not(.no-gradient) {
 
 /* Gradient text effects */
 .gradient-text {
-  background: linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%);
+  background: linear-gradient(102.3deg, rgba(59, 130, 246, 1) 5.9%, rgba(56, 189, 248, 1) 64%, rgba(125, 211, 252, 1) 89%);
   @apply bg-clip-text text-transparent;
 }
 

@@ -1,37 +1,33 @@
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
 
 export function DarkModeToggle() {
-  const [isDark, setIsDark] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
 
+  // Only show the toggle after mounting to avoid hydration mismatch
   useEffect(() => {
-    // Check initial dark mode preference
-    const isDarkMode = document.documentElement.classList.contains("dark");
-    setIsDark(isDarkMode);
+    setMounted(true);
   }, []);
 
-  const toggleDarkMode = () => {
-    const newMode = !isDark;
-    setIsDark(newMode);
-    
-    // Toggle the dark class on the root element
-    document.documentElement.classList.toggle("dark");
-    
-    // Store the preference
-    localStorage.setItem("darkMode", newMode ? "dark" : "light");
-    
-    console.log("Dark mode toggled:", newMode ? "dark" : "light");
-  };
+  if (!mounted) {
+    return (
+      <Button variant="ghost" size="icon" className="hover:bg-accent/50">
+        <div className="h-4 w-4" />
+      </Button>
+    );
+  }
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={toggleDarkMode}
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       className="hover:bg-accent/50"
     >
-      {isDark ? (
+      {theme === "dark" ? (
         <Sun className="h-4 w-4 text-sidebar-foreground" />
       ) : (
         <Moon className="h-4 w-4 text-sidebar-foreground" />

@@ -104,7 +104,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       minimap: { enabled: settings.minimap },
       wordWrap: settings.wordWrap ? 'on' : 'off',
       lineNumbers: settings.lineNumbers ? 'on' : 'off',
-      theme: document.documentElement.classList.contains('dark') ? 'customDark' : 'vs',
+      theme: 'customDark',
       roundedSelection: true,
       scrollBeyondLastLine: false,
       automaticLayout: true,
@@ -163,25 +163,6 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       },
     });
 
-    // Listen for theme changes
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class') {
-          const isDark = document.documentElement.classList.contains('dark');
-          editor.updateOptions({
-            theme: isDark ? 'customDark' : 'vs'
-          });
-        }
-      });
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class']
-    });
-
-    // Cleanup observer on unmount
-    return () => observer.disconnect();
   }, [onSave, settings]);
 
   useEffect(() => {

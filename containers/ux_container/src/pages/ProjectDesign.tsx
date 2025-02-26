@@ -1,7 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download, Upload, Save } from "lucide-react";
-import { DarkModeToggle } from "@/components/DarkModeToggle";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import Terminal from "@/components/Terminal";
 import CodeEditor from "@/components/CodeEditor";
@@ -399,20 +398,20 @@ console.log("Hello, World!");`);
   }, [refreshContainers]);
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#e8eef7] via-[#d8e3f3] to-[#f7e6eb] dark:from-[#121820] dark:via-[#1a2536] dark:to-[#162032]">
-      <div className="flex items-center justify-between p-4 border-b border-[#b8c7e0]/30 dark:border-[#1e293b]/80 bg-white/10 backdrop-blur-md dark:bg-black/10">
+    <div className="h-screen w-screen flex flex-col bg-gradient-to-br from-[#f8fafc] via-[#e2e8f0] to-[#f1f5f9] dark:from-[#121820] dark:via-[#1a2536] dark:to-[#162032]">
+      <div className="flex items-center justify-between p-4 border-b border-[#cbd5e1]/30 dark:border-[#1e293b]/80 bg-white/10 backdrop-blur-md dark:bg-black/10">
         <div className="flex items-center space-x-4">
           <Button 
             variant="ghost" 
             size="icon"
             onClick={() => navigate('/')}
-            className="hover:bg-[#d8e3f3]/50 dark:hover:bg-[#1e293b]/50"
+            className="hover:bg-[#e2e8f0]/50 dark:hover:bg-[#1e293b]/50"
           >
-            <ArrowLeft className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+            <ArrowLeft className="h-4 w-4 text-[#334155] dark:text-white/70" />
           </Button>
-          <h1 className="text-sm font-medium text-[#4a5d7e] dark:text-white/90">{project?.name || 'Loading...'}</h1>
+          <h1 className="text-sm font-medium text-[#334155] dark:text-white/90">{project?.name || 'Loading...'}</h1>
           {project?.description && (
-            <p className="text-xs text-[#4a5d7e]/70 dark:text-white/50">{project.description}</p>
+            <p className="text-xs text-[#64748b]/70 dark:text-white/50">{project.description}</p>
           )}
         </div>
         <div className="flex items-center space-x-2">
@@ -430,7 +429,7 @@ console.log("Hello, World!");`);
             onClick={() => document.getElementById('app-upload')?.click()}
             title="Upload Project"
           >
-            <Upload className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+            <Upload className="h-4 w-4 text-[#334155] dark:text-white/70" />
           </Button>
           <Button
             variant="outline"
@@ -438,7 +437,7 @@ console.log("Hello, World!");`);
             onClick={() => downloadApp()}
             title="Download Project"
           >
-            <Download className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+            <Download className="h-4 w-4 text-[#334155] dark:text-white/70" />
           </Button>
           <Button
             variant="outline"
@@ -446,17 +445,16 @@ console.log("Hello, World!");`);
             onClick={() => setShowSaveDialog(true)}
             title="Save Project"
           >
-            <Save className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+            <Save className="h-4 w-4 text-[#334155] dark:text-white/70" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowSettings(prev => !prev)}
-            className="hover:bg-[#d8e3f3]/50 dark:hover:bg-[#1e293b]/50"
+            className="hover:bg-[#e2e8f0]/50 dark:hover:bg-[#1e293b]/50"
           >
-            <Settings2 className="h-4 w-4 text-[#4a5d7e] dark:text-white/70" />
+            <Settings2 className="h-4 w-4 text-[#334155] dark:text-white/70" />
           </Button>
-          <DarkModeToggle />
         </div>
       </div>
 

@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
-import { ThemeProvider } from "@/components/ThemeProvider";
 import { EditorSettingsProvider } from "@/contexts/EditorSettings";
 import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
@@ -8,7 +7,7 @@ import ProjectDesign from "@/pages/ProjectDesign";
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+    <>
       <EditorSettingsProvider>
         <Router>
           <Routes>
@@ -20,7 +19,7 @@ function App() {
         </Router>
       </EditorSettingsProvider>
       <Toaster />
-    </ThemeProvider>
+    </>
   );
 }
 
