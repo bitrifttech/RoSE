@@ -48,7 +48,7 @@ class LLMConfig:
 
 # Default configuration
 DEFAULT_CONFIG = LLMConfig(
-    llm_type='openai',
-    model_name='gpt-4o-mini',
+    llm_type='anthropic',
+    model_name='claude-3-7-sonnet-20250219',
     temperature=0.7,
 )

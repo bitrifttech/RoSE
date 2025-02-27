@@ -231,7 +231,7 @@ async def get_available_llms():
         },
         'anthropic': {
             'name': 'Anthropic',
-            'models': ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229']
+            'models': ['claude-3-7-sonnet-20250219', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229']
         },
         'deepseek': {
             'name': 'DeepSeek',
